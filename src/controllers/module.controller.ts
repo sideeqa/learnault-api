@@ -10,19 +10,26 @@ const notificationService = new NotificationService()
 
 // Query parameter schemas for validation
 const listModulesSchema = z.object({
-  page: z.string().optional().transform(val => val ? parseInt(val) : 1),
-  limit: z.string().optional().transform(val => val ? parseInt(val) : 10),
+  page: z
+    .string()
+    .optional()
+    .transform((val) => (val ? parseInt(val) : 1)),
+  limit: z
+    .string()
+    .optional()
+    .transform((val) => (val ? parseInt(val) : 10)),
   category: z.string().optional(),
   difficulty: z.string().optional(),
   search: z.string().optional(),
 })
 
-
 const completeModuleSchema = z.object({
-  quizAnswers: z.array(z.object({
-    questionId: z.string(),
-    answer: z.string(),
-  })),
+  quizAnswers: z.array(
+    z.object({
+      questionId: z.string(),
+      answer: z.string(),
+    }),
+  ),
 })
 
 /**
@@ -70,7 +77,7 @@ export const listModules = async (req: Request, res: Response) => {
     if (!queryValidation.success) {
       return res.status(400).json({
         message: 'Invalid query parameters',
-        errors: queryValidation.error.errors
+        errors: queryValidation.error.errors,
       })
     }
 
@@ -91,7 +98,7 @@ export const listModules = async (req: Request, res: Response) => {
     if (search) {
       where.OR = [
         { title: { contains: search, mode: 'insensitive' } },
-        { description: { contains: search, mode: 'insensitive' } }
+        { description: { contains: search, mode: 'insensitive' } },
       ]
     }
 
@@ -107,10 +114,10 @@ export const listModules = async (req: Request, res: Response) => {
       include: {
         _count: {
           select: {
-            completions: true
-          }
-        }
-      }
+            completions: true,
+          },
+        },
+      },
     })
 
     // If user is authenticated, include their progress
@@ -118,14 +125,14 @@ export const listModules = async (req: Request, res: Response) => {
     if (req.user) {
       const userCompletions = await prisma.completion.findMany({
         where: { userId: req.user.id },
-        select: { moduleId: true, score: true, completedAt: true }
+        select: { moduleId: true, score: true, completedAt: true },
       })
-      
+
       userCompletions.forEach((completion: any) => {
         userProgress[completion.moduleId] = {
           completed: true,
           score: completion.score,
-          completedAt: completion.completedAt
+          completedAt: completion.completedAt,
         }
       })
     }
@@ -141,7 +148,7 @@ export const listModules = async (req: Request, res: Response) => {
       createdAt: module.createdAt,
       updatedAt: module.updatedAt,
       completionCount: module._count.completions,
-      userProgress: userProgress[module.id] || null
+      userProgress: userProgress[module.id] || null,
     }))
 
     res.json({
@@ -152,10 +159,9 @@ export const listModules = async (req: Request, res: Response) => {
         total,
         totalPages: Math.ceil(total / limit),
         hasNext: page * limit < total,
-        hasPrev: page > 1
-      }
+        hasPrev: page > 1,
+      },
     })
-
   } catch (error) {
     console.error('Error listing modules:', error)
     res.status(500).json({ message: 'Internal server error' })
@@ -193,10 +199,10 @@ export const getModuleById = async (req: Request, res: Response) => {
       include: {
         _count: {
           select: {
-            completions: true
-          }
-        }
-      }
+            completions: true,
+          },
+        },
+      },
     })
 
     if (!module) {
@@ -210,16 +216,16 @@ export const getModuleById = async (req: Request, res: Response) => {
         where: {
           userId_moduleId: {
             userId: req.user.id,
-            moduleId: id
-          }
-        }
+            moduleId: id,
+          },
+        },
       })
-      
+
       if (completion) {
         userProgress = {
           completed: true,
           score: completion.score,
-          completedAt: completion.completedAt
+          completedAt: completion.completedAt,
         }
       }
     }
@@ -234,11 +240,10 @@ export const getModuleById = async (req: Request, res: Response) => {
       createdAt: module.createdAt,
       updatedAt: module.updatedAt,
       completionCount: module._count.completions,
-      userProgress
+      userProgress,
     }
 
     res.json(response)
-
   } catch (error) {
     console.error('Error getting module:', error)
     res.status(500).json({ message: 'Internal server error' })
@@ -279,7 +284,7 @@ export const startModule = async (req: Request, res: Response) => {
 
     // Check if module exists
     const module = await prisma.module.findUnique({
-      where: { id }
+      where: { id },
     })
 
     if (!module) {
@@ -291,16 +296,15 @@ export const startModule = async (req: Request, res: Response) => {
       where: {
         userId_moduleId: {
           userId: req.user.id,
-          moduleId: id
-        }
-      }
+          moduleId: id,
+        },
+      },
     })
 
     if (existingCompletion) {
       return res.status(400).json({
         message: 'Module already started or completed',
-        status:
-          existingCompletion.score >= 0 ? 'completed' : 'in_progress',
+        status: existingCompletion.score >= 0 ? 'completed' : 'in_progress',
       })
     }
 
@@ -316,9 +320,8 @@ export const startModule = async (req: Request, res: Response) => {
     res.status(201).json({
       message: 'Module started successfully',
       completionId: completion.id,
-      startedAt: completion.createdAt
+      startedAt: completion.createdAt,
     })
-
   } catch (error) {
     console.error('Error starting module:', error)
     res.status(500).json({ message: 'Internal server error' })
@@ -367,11 +370,11 @@ export const completeModule = async (req: Request, res: Response) => {
 
     const { id } = req.params
     const bodyValidation = completeModuleSchema.safeParse(req.body)
-    
+
     if (!bodyValidation.success) {
       return res.status(400).json({
         message: 'Invalid request body',
-        errors: bodyValidation.error.errors
+        errors: bodyValidation.error.errors,
       })
     }
 
@@ -379,7 +382,7 @@ export const completeModule = async (req: Request, res: Response) => {
 
     // Check if module exists
     const module = await prisma.module.findUnique({
-      where: { id }
+      where: { id },
     })
 
     if (!module) {
@@ -391,13 +394,15 @@ export const completeModule = async (req: Request, res: Response) => {
       where: {
         userId_moduleId: {
           userId: req.user.id,
-          moduleId: id
-        }
-      }
+          moduleId: id,
+        },
+      },
     })
 
     if (!completion) {
-      return res.status(400).json({ message: 'Module must be started before completion' })
+      return res
+        .status(400)
+        .json({ message: 'Module must be started before completion' })
     }
 
     if (completion.score >= 0) {
@@ -415,13 +420,13 @@ export const completeModule = async (req: Request, res: Response) => {
       where: {
         userId_moduleId: {
           userId: req.user.id,
-          moduleId: id
-        }
+          moduleId: id,
+        },
       },
       data: {
         score,
-        completedAt: new Date()
-      }
+        completedAt: new Date(),
+      },
     })
 
     // Check reward eligibility (score >= 70%)
@@ -435,20 +440,24 @@ export const completeModule = async (req: Request, res: Response) => {
           userId: req.user.id,
           amount: module.reward,
           type: 'reward',
-          status: 'pending'
-        }
+          status: 'pending',
+        },
       })
     }
 
     // Fire push notification for quiz pass/fail (non-blocking)
-    notificationService.queueNotification(
-      req.user.id,
-      'quizPassFail',
-      isEligibleForReward ? 'Quiz Passed!' : 'Quiz Completed',
-      isEligibleForReward
-        ? `Great job! You scored ${score}% on "${module.title}" and earned ${module.reward} XLM.`
-        : `You scored ${score}% on "${module.title}". Keep practicing to earn rewards!`
-    ).catch(err => console.error('[Notifications] Quiz notification error:', err))
+    notificationService
+      .queueNotification(
+        req.user.id,
+        'quizPassFail',
+        isEligibleForReward ? 'Quiz Passed!' : 'Quiz Completed',
+        isEligibleForReward
+          ? `Great job! You scored ${score}% on "${module.title}" and earned ${module.reward} XLM.`
+          : `You scored ${score}% on "${module.title}". Keep practicing to earn rewards!`,
+      )
+      .catch((err) =>
+        console.error('[Notifications] Quiz notification error:', err),
+      )
 
     res.json({
       message: 'Module completed successfully',
@@ -456,9 +465,8 @@ export const completeModule = async (req: Request, res: Response) => {
       isEligibleForReward,
       reward: isEligibleForReward ? module.reward : 0,
       rewardTransaction: rewardTransaction?.id,
-      completedAt: updatedCompletion.completedAt
+      completedAt: updatedCompletion.completedAt,
     })
-
   } catch (error) {
     console.error('Error completing module:', error)
     res.status(500).json({ message: 'Internal server error' })

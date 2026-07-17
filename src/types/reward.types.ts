@@ -23,53 +23,53 @@ export enum TransactionReason {
 }
 
 export interface Transaction {
-  id: string;
-  userId: string;
-  type: TransactionType;
-  status: TransactionStatus;
-  reason: TransactionReason;
-  amount: number;
-  balanceBefore: number;
-  balanceAfter: number;
-  referenceId?: string;
-  referenceType?: string;
-  note?: string;
-  createdAt: string;
-  completedAt?: string;
+  id: string
+  userId: string
+  type: TransactionType
+  status: TransactionStatus
+  reason: TransactionReason
+  amount: number
+  balanceBefore: number
+  balanceAfter: number
+  referenceId?: string
+  referenceType?: string
+  note?: string
+  createdAt: string
+  completedAt?: string
 }
 
 export interface Balance {
-  userId: string;
-  available: number;
-  pending: number;
-  lifetime: number;
-  updatedAt: string;
+  userId: string
+  available: number
+  pending: number
+  lifetime: number
+  updatedAt: string
 }
 
 export interface RewardSummary {
-  balance: Balance;
-  recentTransactions: Transaction[];
-  earnedThisMonth: number;
-  spentThisMonth: number;
+  balance: Balance
+  recentTransactions: Transaction[]
+  earnedThisMonth: number
+  spentThisMonth: number
 }
 
 // Request types
 export interface CreateTransactionRequest {
-  userId: string;
-  type: TransactionType;
-  reason: TransactionReason;
-  amount: number;
-  referenceId?: string;
-  referenceType?: string;
-  note?: string;
+  userId: string
+  type: TransactionType
+  reason: TransactionReason
+  amount: number
+  referenceId?: string
+  referenceType?: string
+  note?: string
 }
 
 export interface TransactionFilterParams {
-  type?: TransactionType;
-  status?: TransactionStatus;
-  reason?: TransactionReason;
-  fromDate?: string;
-  toDate?: string;
-  minAmount?: number;
-  maxAmount?: number;
+  type?: TransactionType
+  status?: TransactionStatus
+  reason?: TransactionReason
+  fromDate?: string
+  toDate?: string
+  minAmount?: number
+  maxAmount?: number
 }

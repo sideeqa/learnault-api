@@ -91,6 +91,30 @@ pnpm test
 
 # Lint code
 pnpm lint
+
+# Run the same quality gates as CI
+pnpm run format:check
+pnpm run typecheck
+pnpm run test:coverage
+pnpm run build
+```
+
+### CI Quality Gates
+
+The GitHub Actions workflow runs the same validation path on pull requests and pushes to main:
+
+```bash
+pnpm install --frozen-lockfile
+pnpm run db:validate
+pnpm run db:format -- --check
+pnpm run db:generate
+pnpm run db:migrate:deploy
+pnpm run format:check
+pnpm run lint
+pnpm run typecheck
+pnpm run test:ci
+pnpm run test:coverage
+pnpm run build
 ```
 
 ## Documentation

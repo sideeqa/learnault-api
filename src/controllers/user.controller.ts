@@ -1,4 +1,9 @@
-import { ChangePasswordData, PublicUserInfo, UpdateUserData, User } from '../types/user.types'
+import {
+  ChangePasswordData,
+  PublicUserInfo,
+  UpdateUserData,
+  User,
+} from '../types/user.types'
 import { Request, Response } from 'express'
 
 export class UserController {
@@ -23,7 +28,7 @@ export class UserController {
    *         description: User not found
    */
 
-  async getCurrentUser (req: Request, res: Response): Promise<void> {
+  async getCurrentUser(req: Request, res: Response): Promise<void> {
     try {
       const userId = (req as any).user?.id
       if (!userId) {
@@ -82,7 +87,7 @@ export class UserController {
    *         description: Internal server error
    */
 
-  async updateProfile (req: Request, res: Response): Promise<void> {
+  async updateProfile(req: Request, res: Response): Promise<void> {
     try {
       const userId = (req as any).user?.id
       if (!userId) {
@@ -110,7 +115,7 @@ export class UserController {
     }
   }
 
-  async getUserById (req: Request, res: Response): Promise<void> {
+  async getUserById(req: Request, res: Response): Promise<void> {
     try {
       const { id } = req.params
 
@@ -138,7 +143,7 @@ export class UserController {
     }
   }
 
-  async changePassword (req: Request, res: Response): Promise<void> {
+  async changePassword(req: Request, res: Response): Promise<void> {
     try {
       const userId = (req as any).user?.id
       const { currentPassword, newPassword }: ChangePasswordData = req.body
@@ -147,14 +152,15 @@ export class UserController {
       if (!user) {
         res.status(404).json({ error: 'User not found' })
 
-
         return
       }
 
-      const isCurrentPasswordValid = await this.validatePassword(user, currentPassword)
+      const isCurrentPasswordValid = await this.validatePassword(
+        user,
+        currentPassword,
+      )
       if (!isCurrentPasswordValid) {
         res.status(400).json({ error: 'Current password is incorrect' })
-
 
         return
       }
@@ -203,7 +209,7 @@ export class UserController {
    *         description: Internal server error
    */
 
-  async updateWalletAddress (req: Request, res: Response): Promise<void> {
+  async updateWalletAddress(req: Request, res: Response): Promise<void> {
     try {
       const userId = (req as any).user?.id
       if (!userId) {
@@ -236,7 +242,7 @@ export class UserController {
     }
   }
 
-  private async findUserById (id: string): Promise<User | null> {
+  private async findUserById(id: string): Promise<User | null> {
     const mockUser: User = {
       id,
       email: 'test@example.com',
@@ -245,7 +251,8 @@ export class UserController {
       lastName: 'User',
       bio: 'Test bio',
       avatar: 'https://example.com/avatar.jpg',
-      walletAddress: 'GABC123456789012345678901234567890123456789012345678901234567890',
+      walletAddress:
+        'GABC123456789012345678901234567890123456789012345678901234567890',
       isActive: true,
       role: 'LEARNER' as any,
       status: 'active' as any,
@@ -256,7 +263,10 @@ export class UserController {
     return mockUser
   }
 
-  private async updateUserProfile (id: string, data: UpdateUserData): Promise<User> {
+  private async updateUserProfile(
+    id: string,
+    data: UpdateUserData,
+  ): Promise<User> {
     const mockUser: User = {
       id,
       email: 'test@example.com',
@@ -265,7 +275,8 @@ export class UserController {
       lastName: data.lastName,
       bio: data.bio,
       avatar: data.avatar,
-      walletAddress: 'GABC123456789012345678901234567890123456789012345678901234567890',
+      walletAddress:
+        'GABC123456789012345678901234567890123456789012345678901234567890',
       isActive: true,
       role: 'LEARNER' as any,
       status: 'active' as any,
@@ -276,15 +287,24 @@ export class UserController {
     return mockUser
   }
 
-  private async validatePassword (_user: User, _password: string): Promise<boolean> {
+  private async validatePassword(
+    _user: User,
+    _password: string,
+  ): Promise<boolean> {
     return false
   }
 
-  private async updateUserPassword (_id: string, _newPassword: string): Promise<void> {
+  private async updateUserPassword(
+    _id: string,
+    _newPassword: string,
+  ): Promise<void> {
     throw new Error('Not implemented')
   }
 
-  private async updateUserWallet (id: string, walletAddress: string): Promise<User> {
+  private async updateUserWallet(
+    id: string,
+    walletAddress: string,
+  ): Promise<User> {
     const mockUser: User = {
       id,
       email: 'test@example.com',
@@ -298,7 +318,7 @@ export class UserController {
     return mockUser
   }
 
-  private isValidStellarAddress (address: string): boolean {
+  private isValidStellarAddress(address: string): boolean {
     return /^G[A-Z0-9]{50,55}$/.test(address)
   }
 }

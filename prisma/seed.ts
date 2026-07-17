@@ -81,7 +81,8 @@ const seedModuleFixtures: SeedModule[] = [
   {
     id: 'seed-module-blockchain-101',
     title: 'Stellar Fundamentals',
-    description: 'Core ledger concepts, accounts, trustlines, and transaction flow on Stellar.',
+    description:
+      'Core ledger concepts, accounts, trustlines, and transaction flow on Stellar.',
     category: 'blockchain',
     difficulty: 'beginner',
     reward: 10,
@@ -89,7 +90,8 @@ const seedModuleFixtures: SeedModule[] = [
   {
     id: 'seed-module-finance-101',
     title: 'Understanding Stablecoins',
-    description: 'How fiat-backed and crypto-backed stablecoins work across global payment rails.',
+    description:
+      'How fiat-backed and crypto-backed stablecoins work across global payment rails.',
     category: 'finance',
     difficulty: 'beginner',
     reward: 12,
@@ -97,7 +99,8 @@ const seedModuleFixtures: SeedModule[] = [
   {
     id: 'seed-module-security-201',
     title: 'Wallet Security & Key Management',
-    description: 'Threat modeling, custody approaches, and secure key handling in production systems.',
+    description:
+      'Threat modeling, custody approaches, and secure key handling in production systems.',
     category: 'security',
     difficulty: 'intermediate',
     reward: 18,
@@ -105,7 +108,8 @@ const seedModuleFixtures: SeedModule[] = [
   {
     id: 'seed-module-development-301',
     title: 'Build with Soroban',
-    description: 'Develop and test smart contracts using practical Soroban development workflows.',
+    description:
+      'Develop and test smart contracts using practical Soroban development workflows.',
     category: 'development',
     difficulty: 'advanced',
     reward: 30,
@@ -113,7 +117,8 @@ const seedModuleFixtures: SeedModule[] = [
   {
     id: 'seed-module-compliance-201',
     title: 'AML/KYC for Digital Finance',
-    description: 'Compliance basics, sanctions screening, and regulated onboarding for fintech teams.',
+    description:
+      'Compliance basics, sanctions screening, and regulated onboarding for fintech teams.',
     category: 'compliance',
     difficulty: 'intermediate',
     reward: 20,
@@ -121,7 +126,8 @@ const seedModuleFixtures: SeedModule[] = [
   {
     id: 'seed-module-identity-301',
     title: 'Decentralized Identity in Practice',
-    description: 'Verifiable credentials, selective disclosure, and identity portability patterns.',
+    description:
+      'Verifiable credentials, selective disclosure, and identity portability patterns.',
     category: 'identity',
     difficulty: 'advanced',
     reward: 28,
@@ -129,7 +135,8 @@ const seedModuleFixtures: SeedModule[] = [
   {
     id: 'seed-module-development-401',
     title: 'Production API Hardening',
-    description: 'Rate limiting, auth patterns, observability, and safe rollout practices.',
+    description:
+      'Rate limiting, auth patterns, observability, and safe rollout practices.',
     category: 'development',
     difficulty: 'expert',
     reward: 40,
@@ -137,7 +144,8 @@ const seedModuleFixtures: SeedModule[] = [
   {
     id: 'seed-module-blockchain-202',
     title: 'Stellar Asset Issuance',
-    description: 'Issue and manage custom assets with issuer/distributor architecture.',
+    description:
+      'Issue and manage custom assets with issuer/distributor architecture.',
     category: 'blockchain',
     difficulty: 'intermediate',
     reward: 22,
@@ -162,7 +170,6 @@ function scoreFor(module: SeedModule, rand: () => number) {
 }
 
 function xlmAmount(module: SeedModule, rand: () => number) {
-
   return Number((module.reward * (1 + rand() * 0.3)).toFixed(2))
 }
 
@@ -197,7 +204,9 @@ async function upsertUsers(passwordHash: string) {
       },
     })
   }
-  console.log(`✅ Upserted ${seedUserFixtures.length} users (learners, employers, admin)`)
+  console.log(
+    `✅ Upserted ${seedUserFixtures.length} users (learners, employers, admin)`,
+  )
 }
 
 async function upsertModules() {
@@ -214,7 +223,9 @@ async function upsertModules() {
       create: moduleData,
     })
   }
-  console.log(`✅ Upserted ${seedModuleFixtures.length} modules across all categories`)
+  console.log(
+    `✅ Upserted ${seedModuleFixtures.length} modules across all categories`,
+  )
 }
 
 async function seedLearningData() {
@@ -229,7 +240,9 @@ async function seedLearningData() {
       const completed = rand() < 0.72
       if (!completed) continue
 
-      const completedAt = new Date(Date.now() - Math.floor(rand() * 75) * MS_PER_DAY)
+      const completedAt = new Date(
+        Date.now() - Math.floor(rand() * 75) * MS_PER_DAY,
+      )
       const score = scoreFor(moduleData, rand)
       const completionId = `seed-completion-${user.id}-${moduleData.id}`
 
@@ -262,14 +275,20 @@ async function seedLearningData() {
               userId: user.id,
               moduleId: moduleData.id,
               onChainId: `cred_${user.id.slice(-5)}_${moduleData.id.slice(-5)}`,
-              issuedAt: new Date(completedAt.getTime() + Math.floor(rand() * 12) * 60 * 60 * 1000),
+              issuedAt: new Date(
+                completedAt.getTime() +
+                  Math.floor(rand() * 12) * 60 * 60 * 1000,
+              ),
             },
             create: {
               id: credentialId,
               userId: user.id,
               moduleId: moduleData.id,
               onChainId: `cred_${user.id.slice(-5)}_${moduleData.id.slice(-5)}`,
-              issuedAt: new Date(completedAt.getTime() + Math.floor(rand() * 12) * 60 * 60 * 1000),
+              issuedAt: new Date(
+                completedAt.getTime() +
+                  Math.floor(rand() * 12) * 60 * 60 * 1000,
+              ),
             },
           }),
         )
@@ -309,7 +328,9 @@ async function seedLearningData() {
           amount: Number((15 + rand() * 30).toFixed(2)),
           type: 'withdrawal',
           status: rand() < 0.85 ? 'completed' : 'pending',
-          createdAt: new Date(Date.now() - Math.floor(rand() * 30) * MS_PER_DAY),
+          createdAt: new Date(
+            Date.now() - Math.floor(rand() * 30) * MS_PER_DAY,
+          ),
         },
         create: {
           id: payoutTxnId,
@@ -317,13 +338,17 @@ async function seedLearningData() {
           amount: Number((15 + rand() * 30).toFixed(2)),
           type: 'withdrawal',
           status: rand() < 0.85 ? 'completed' : 'pending',
-          createdAt: new Date(Date.now() - Math.floor(rand() * 30) * MS_PER_DAY),
+          createdAt: new Date(
+            Date.now() - Math.floor(rand() * 30) * MS_PER_DAY,
+          ),
         },
       }),
     )
   }
 
-  const employers = seedUserFixtures.filter((u) => u.email.includes('.employer+'))
+  const employers = seedUserFixtures.filter((u) =>
+    u.email.includes('.employer+'),
+  )
   for (const employer of employers) {
     const txId = `seed-transaction-employer-credit-${employer.id}`
     transactions.push(
@@ -393,7 +418,13 @@ async function main() {
   await seedLearningData()
   await seedWebhookData()
 
-  const [userCount, moduleCount, completionCount, credentialCount, transactionCount] = await Promise.all([
+  const [
+    userCount,
+    moduleCount,
+    completionCount,
+    credentialCount,
+    transactionCount,
+  ] = await Promise.all([
     prisma.user.count(),
     prisma.module.count(),
     prisma.completion.count(),

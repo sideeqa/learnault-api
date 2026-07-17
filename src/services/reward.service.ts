@@ -4,10 +4,7 @@ import { NotificationService } from './notification.service'
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export type ModuleDifficulty =
-  | 'beginner'
-  | 'intermediate'
-  | 'advanced'
-  | 'expert'
+  'beginner' | 'intermediate' | 'advanced' | 'expert'
 
 export interface Module {
   id: string
@@ -182,12 +179,16 @@ export class RewardService {
     }
 
     // 8. Send push notification for reward receipt (non-blocking)
-    this.notificationService.queueNotification(
-      claim.userId,
-      'rewardReceipt',
-      'Reward Received!',
-      `You earned ${totalAmount.toFixed(2)} XLM for completing module ${module.title}.`
-    ).catch(err => console.error('[Notifications] Reward notification error:', err))
+    this.notificationService
+      .queueNotification(
+        claim.userId,
+        'rewardReceipt',
+        'Reward Received!',
+        `You earned ${totalAmount.toFixed(2)} XLM for completing module ${module.title}.`,
+      )
+      .catch((err) =>
+        console.error('[Notifications] Reward notification error:', err),
+      )
 
     return {
       transactionId,
