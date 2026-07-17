@@ -62,6 +62,16 @@ coverage/
 *.env
 !.env.example
 
+# macOS
+.DS_Store
+.DS_Store?
+.Spotlight-V100
+.Trashes
+.AppleDouble
+.LSOverride
+Icon?
+*.DS_Store
+
 # VS Code
 .vscode/*
 !.vscode/settings.json
