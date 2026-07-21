@@ -2,6 +2,11 @@ import { Request, Response } from 'express'
 import { RewardService } from '../services/reward.service'
 import { asyncHandler } from '../middleware/error.middleware'
 import { BadRequestError } from '../utils/errors'
+import {
+  stroopsToDecimalString,
+  toStroops,
+  UnsafeMonetaryCoercionError,
+} from '../utils/money'
 
 export class RewardController {
   private rewardService: RewardService
@@ -37,14 +42,31 @@ export class RewardController {
       }
 
       const balance = this.rewardService.getBalance(userId)
+      const assetDecimals = balance.asset.decimals
 
       res.json({
         success: true,
         data: {
           balance: {
             available: balance.available,
+            availableStroops: balance.availableStroops.toString(),
+            availableFormatted: stroopsToDecimalString(
+              balance.availableStroops,
+              assetDecimals,
+            ),
             pending: balance.pending,
+            pendingStroops: balance.pendingStroops.toString(),
+            pendingFormatted: stroopsToDecimalString(
+              balance.pendingStroops,
+              assetDecimals,
+            ),
             lifetime: balance.lifetime,
+            lifetimeStroops: balance.lifetimeStroops.toString(),
+            lifetimeFormatted: stroopsToDecimalString(
+              balance.lifetimeStroops,
+              assetDecimals,
+            ),
+            asset: balance.asset,
           },
           updatedAt: balance.updatedAt.toISOString(),
         },
@@ -174,16 +196,28 @@ export class RewardController {
       res.json({
         success: true,
         data: {
-          transactions: history.transactions.map((t) => ({
-            id: t.id,
-            type: t.type,
-            status: t.status,
-            amount: t.amount,
-            moduleId: t.moduleId,
-            stellarTxHash: t.stellarTxHash,
-            createdAt: t.createdAt.toISOString(),
-            completedAt: t.completedAt?.toISOString(),
-          })),
+          transactions: history.transactions.map((t) => {
+            const decimals = t.assetDecimals ?? 7
+            const decimalStr = stroopsToDecimalString(t.amountStroops, decimals)
+            return {
+              id: t.id,
+              type: t.type,
+              status: t.status,
+              amount: t.amount,
+              amountStroops: t.amountStroops.toString(),
+              amountFormatted: decimalStr,
+              asset: {
+                code: t.assetCode ?? 'XLM',
+                issuer: t.assetIssuer ?? null,
+                decimals,
+                network: t.network ?? 'testnet',
+              },
+              moduleId: t.moduleId,
+              stellarTxHash: t.stellarTxHash,
+              createdAt: t.createdAt.toISOString(),
+              completedAt: t.completedAt?.toISOString(),
+            }
+          }),
           pagination: {
             total: history.total,
             limit: filters.limit ?? 20,
@@ -240,12 +274,22 @@ export class RewardController {
         throw new BadRequestError('Amount is required')
       }
 
-      // Validate amount
-      if (typeof amount !== 'number' || isNaN(amount)) {
-        throw new BadRequestError('Amount must be a valid number')
+      // Validate amount format & convert to stroops
+      let requestedStroops: bigint
+      try {
+        requestedStroops = toStroops(amount)
+      } catch (err: any) {
+        if (err instanceof UnsafeMonetaryCoercionError) {
+          throw new BadRequestError(
+            `Amount must be a valid numeric amount or decimal string: ${err.message}`,
+          )
+        }
+        throw new BadRequestError(
+          'Amount must be a valid numeric amount or decimal string',
+        )
       }
 
-      if (amount <= 0) {
+      if (requestedStroops <= 0n) {
         throw new BadRequestError('Amount must be greater than 0')
       }
 
@@ -255,10 +299,11 @@ export class RewardController {
       }
 
       // Check if user has sufficient balance
-      if (!this.rewardService.hasSufficientBalance(userId, amount)) {
+      if (!this.rewardService.hasSufficientBalance(userId, requestedStroops)) {
         const balance = this.rewardService.getBalance(userId)
+        const requestedDecimal = stroopsToDecimalString(requestedStroops)
         throw new BadRequestError(
-          `Insufficient balance. Available: ${balance.available} XLM, Requested: ${amount} XLM`,
+          `Insufficient balance. Available: ${balance.available} XLM, Requested: ${requestedDecimal} XLM`,
         )
       }
 
@@ -266,9 +311,14 @@ export class RewardController {
       const result = await this.rewardService.processWithdrawal({
         userId,
         walletAddress,
-        amount,
+        amount: requestedStroops,
         memo,
       })
+
+      const formatted = stroopsToDecimalString(
+        result.amountStroops,
+        result.asset.decimals,
+      )
 
       res.status(201).json({
         success: true,
@@ -276,6 +326,9 @@ export class RewardController {
         data: {
           transactionId: result.transactionId,
           amount: result.amount,
+          amountStroops: result.amountStroops.toString(),
+          amountFormatted: formatted,
+          asset: result.asset,
           stellarTxHash: result.stellarTxHash,
           status: result.status,
           requestedAt: result.requestedAt.toISOString(),

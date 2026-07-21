@@ -1,7 +1,12 @@
 import { Request, Response } from 'express'
 import { asyncHandler } from '../middleware/error.middleware'
-import { BadRequestError, NotFoundError, UnauthorizedError } from '../utils/errors'
+import {
+  BadRequestError,
+  NotFoundError,
+  UnauthorizedError,
+} from '../utils/errors'
 import { prisma } from '../config/database'
+import { stroopsToDecimalString } from '../utils/money'
 
 export class CredentialController {
   /**
@@ -172,7 +177,7 @@ export class CredentialController {
         throw new UnauthorizedError('User ID not found')
       }
 
-      const credential = await prisma.credential.findUnique({
+      const credential = await (prisma.credential.findUnique as any)({
         where: { id },
         include: {
           user: {
@@ -189,7 +194,11 @@ export class CredentialController {
               description: true,
               category: true,
               difficulty: true,
-              reward: true,
+              rewardAmount: true,
+              assetCode: true,
+              assetIssuer: true,
+              assetDecimals: true,
+              network: true,
             },
           },
         },
@@ -203,6 +212,14 @@ export class CredentialController {
       if (credential.userId !== userId) {
         throw new UnauthorizedError('You do not have access to this credential')
       }
+
+      const mod = credential.module as any
+      const rewardStroops = mod.rewardAmount ?? 0n
+      const assetDecimals = mod.assetDecimals ?? 7
+      const rewardDecimalStr = stroopsToDecimalString(
+        BigInt(rewardStroops),
+        assetDecimals,
+      )
 
       res.json({
         success: true,
@@ -219,7 +236,15 @@ export class CredentialController {
           issuedAt: credential.issuedAt.toISOString(),
           shareableLink: `/api/v1/credentials/verify/${credential.onChainId || credential.id}`,
           metadata: {
-            reward: credential.module.reward,
+            reward: Number(rewardDecimalStr),
+            rewardAmountStroops: rewardStroops.toString(),
+            rewardFormatted: rewardDecimalStr,
+            asset: {
+              code: mod.assetCode ?? 'XLM',
+              issuer: mod.assetIssuer ?? null,
+              decimals: assetDecimals,
+              network: mod.network ?? 'testnet',
+            },
             verificationUrl: `/api/v1/credentials/verify/${credential.onChainId || credential.id}`,
           },
         },

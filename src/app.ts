@@ -15,9 +15,11 @@ const app: express.Application = express()
 
 app.use(express.json())
 app.use(cors())
-app.use(helmet({
-  contentSecurityPolicy: false, // Disable CSP for Swagger UI to work correctly
-}))
+app.use(
+  helmet({
+    contentSecurityPolicy: false, // Disable CSP for Swagger UI to work correctly
+  }),
+)
 app.use(morgan('dev'))
 
 // API routes

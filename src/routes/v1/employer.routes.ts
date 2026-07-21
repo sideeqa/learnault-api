@@ -1,5 +1,9 @@
 import { Router } from 'express'
-import { contactCandidate, getCandidateProfile, searchTalent } from '../../controllers/employer.controller'
+import {
+  contactCandidate,
+  getCandidateProfile,
+  searchTalent,
+} from '../../controllers/employer.controller'
 import { authenticate, authorize } from '../../middleware/auth.middleware'
 import { employerLimiter } from '../../middleware/rate-limit.middleware'
 

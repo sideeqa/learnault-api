@@ -4,3 +4,7 @@ coverage
 pnpm-lock.yaml
 *.min.js
 .git
+lint_output.json
+lint_results*.txt
+server_error*.txt
+*.log

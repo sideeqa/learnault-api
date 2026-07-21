@@ -11,7 +11,7 @@ const prisma = new PrismaClient({ adapter })
 type SeedUser = {
   id: string
   email: string
-  name: string
+  username: string
   walletAddress: string | null
 }
 
@@ -21,7 +21,7 @@ type SeedModule = {
   description: string
   category: string
   difficulty: string
-  reward: number
+  rewardAmount: bigint
 }
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000
@@ -36,43 +36,43 @@ const seedUserFixtures: SeedUser[] = [
   {
     id: 'seed-user-admin-ada',
     email: 'ada.admin+seed@learnault.dev',
-    name: 'Ada Admin',
+    username: 'ada_admin',
     walletAddress: 'GD6QK3H5MYYXQUDMVDGLDZ4E2IWXQ7N5SLW7PZBLW4D5YV3V2NFH8A1A',
   },
   {
     id: 'seed-user-learner-alice',
     email: 'alice.learner+seed@learnault.dev',
-    name: 'Alice Learner',
+    username: 'alice_learner',
     walletAddress: 'GBUQWP3BOUZX34ULNQG23RQ6F4BFSRJ4HBSNF63YLIXLQ5EDLF274Y6C',
   },
   {
     id: 'seed-user-learner-bob',
     email: 'bob.learner+seed@learnault.dev',
-    name: 'Bob Learner',
+    username: 'bob_learner',
     walletAddress: 'GB7YLLICSMNYWJ46NWYCBTGXD54FPPWFY3YQYBFJFTQ6B2N3WHAL5V4K',
   },
   {
     id: 'seed-user-learner-carla',
     email: 'carla.learner+seed@learnault.dev',
-    name: 'Carla Learner',
+    username: 'carla_learner',
     walletAddress: 'GA5N2IBQ2J5KVSBBR6K7D6JQ3Y7L46BP3I7WNIPXQ2XH2WQOTJXK5C2Z',
   },
   {
     id: 'seed-user-learner-deepak',
     email: 'deepak.learner+seed@learnault.dev',
-    name: 'Deepak Learner',
+    username: 'deepak_learner',
     walletAddress: 'GDVXG4D7WQ3WWT3S3Q6L2J5KLC2TSGBYHYQ4M4U7QWEK3J75VYLPQ9U2',
   },
   {
     id: 'seed-user-employer-acme',
     email: 'acme.employer+seed@learnault.dev',
-    name: 'Acme Talent Team',
+    username: 'acme_employer',
     walletAddress: null,
   },
   {
     id: 'seed-user-employer-globex',
     email: 'globex.employer+seed@learnault.dev',
-    name: 'Globex Hiring Ops',
+    username: 'globex_employer',
     walletAddress: null,
   },
 ]
@@ -81,66 +81,74 @@ const seedModuleFixtures: SeedModule[] = [
   {
     id: 'seed-module-blockchain-101',
     title: 'Stellar Fundamentals',
-    description: 'Core ledger concepts, accounts, trustlines, and transaction flow on Stellar.',
+    description:
+      'Core ledger concepts, accounts, trustlines, and transaction flow on Stellar.',
     category: 'blockchain',
     difficulty: 'beginner',
-    reward: 10,
+    rewardAmount: 100_000_000n, // 10 XLM
   },
   {
     id: 'seed-module-finance-101',
     title: 'Understanding Stablecoins',
-    description: 'How fiat-backed and crypto-backed stablecoins work across global payment rails.',
+    description:
+      'How fiat-backed and crypto-backed stablecoins work across global payment rails.',
     category: 'finance',
     difficulty: 'beginner',
-    reward: 12,
+    rewardAmount: 120_000_000n, // 12 XLM
   },
   {
     id: 'seed-module-security-201',
     title: 'Wallet Security & Key Management',
-    description: 'Threat modeling, custody approaches, and secure key handling in production systems.',
+    description:
+      'Threat modeling, custody approaches, and secure key handling in production systems.',
     category: 'security',
     difficulty: 'intermediate',
-    reward: 18,
+    rewardAmount: 180_000_000n, // 18 XLM
   },
   {
     id: 'seed-module-development-301',
     title: 'Build with Soroban',
-    description: 'Develop and test smart contracts using practical Soroban development workflows.',
+    description:
+      'Develop and test smart contracts using practical Soroban development workflows.',
     category: 'development',
     difficulty: 'advanced',
-    reward: 30,
+    rewardAmount: 300_000_000n, // 30 XLM
   },
   {
     id: 'seed-module-compliance-201',
     title: 'AML/KYC for Digital Finance',
-    description: 'Compliance basics, sanctions screening, and regulated onboarding for fintech teams.',
+    description:
+      'Compliance basics, sanctions screening, and regulated onboarding for fintech teams.',
     category: 'compliance',
     difficulty: 'intermediate',
-    reward: 20,
+    rewardAmount: 200_000_000n, // 20 XLM
   },
   {
     id: 'seed-module-identity-301',
     title: 'Decentralized Identity in Practice',
-    description: 'Verifiable credentials, selective disclosure, and identity portability patterns.',
+    description:
+      'Verifiable credentials, selective disclosure, and identity portability patterns.',
     category: 'identity',
     difficulty: 'advanced',
-    reward: 28,
+    rewardAmount: 280_000_000n, // 28 XLM
   },
   {
     id: 'seed-module-development-401',
     title: 'Production API Hardening',
-    description: 'Rate limiting, auth patterns, observability, and safe rollout practices.',
+    description:
+      'Rate limiting, auth patterns, observability, and safe rollout practices.',
     category: 'development',
     difficulty: 'expert',
-    reward: 40,
+    rewardAmount: 400_000_000n, // 40 XLM
   },
   {
     id: 'seed-module-blockchain-202',
     title: 'Stellar Asset Issuance',
-    description: 'Issue and manage custom assets with issuer/distributor architecture.',
+    description:
+      'Issue and manage custom assets with issuer/distributor architecture.',
     category: 'blockchain',
     difficulty: 'intermediate',
-    reward: 22,
+    rewardAmount: 220_000_000n, // 22 XLM
   },
 ]
 
@@ -161,9 +169,9 @@ function scoreFor(module: SeedModule, rand: () => number) {
   return Number(Math.max(60, Math.min(99, base - penalty)).toFixed(2))
 }
 
-function xlmAmount(module: SeedModule, rand: () => number) {
-
-  return Number((module.reward * (1 + rand() * 0.3)).toFixed(2))
+function xlmAmountStroops(module: SeedModule, rand: () => number): bigint {
+  const multiplier = 1 + rand() * 0.3
+  return BigInt(Math.round(Number(module.rewardAmount) * multiplier))
 }
 
 async function resetAllData() {
@@ -184,37 +192,49 @@ async function upsertUsers(passwordHash: string) {
       where: { id: user.id },
       update: {
         email: user.email,
-        name: user.name,
+        username: user.username,
         walletAddress: user.walletAddress,
-        passwordHash,
+        password: passwordHash,
       },
       create: {
         id: user.id,
         email: user.email,
-        name: user.name,
+        username: user.username,
         walletAddress: user.walletAddress,
-        passwordHash,
+        password: passwordHash,
       },
     })
   }
-  console.log(`✅ Upserted ${seedUserFixtures.length} users (learners, employers, admin)`)
+  console.log(
+    `✅ Upserted ${seedUserFixtures.length} users (learners, employers, admin)`,
+  )
 }
 
 async function upsertModules() {
   for (const moduleData of seedModuleFixtures) {
-    await prisma.module.upsert({
+    await (prisma.module.upsert as any)({
       where: { id: moduleData.id },
       update: {
         title: moduleData.title,
         description: moduleData.description,
         category: moduleData.category,
         difficulty: moduleData.difficulty,
-        reward: moduleData.reward,
+        rewardAmount: moduleData.rewardAmount,
+        assetCode: 'XLM',
+        assetDecimals: 7,
+        network: 'testnet',
       },
-      create: moduleData,
+      create: {
+        ...moduleData,
+        assetCode: 'XLM',
+        assetDecimals: 7,
+        network: 'testnet',
+      },
     })
   }
-  console.log(`✅ Upserted ${seedModuleFixtures.length} modules across all categories`)
+  console.log(
+    `✅ Upserted ${seedModuleFixtures.length} modules across all categories`,
+  )
 }
 
 async function seedLearningData() {
@@ -229,7 +249,9 @@ async function seedLearningData() {
       const completed = rand() < 0.72
       if (!completed) continue
 
-      const completedAt = new Date(Date.now() - Math.floor(rand() * 75) * MS_PER_DAY)
+      const completedAt = new Date(
+        Date.now() - Math.floor(rand() * 75) * MS_PER_DAY,
+      )
       const score = scoreFor(moduleData, rand)
       const completionId = `seed-completion-${user.id}-${moduleData.id}`
 
@@ -262,28 +284,37 @@ async function seedLearningData() {
               userId: user.id,
               moduleId: moduleData.id,
               onChainId: `cred_${user.id.slice(-5)}_${moduleData.id.slice(-5)}`,
-              issuedAt: new Date(completedAt.getTime() + Math.floor(rand() * 12) * 60 * 60 * 1000),
+              issuedAt: new Date(
+                completedAt.getTime() +
+                  Math.floor(rand() * 12) * 60 * 60 * 1000,
+              ),
             },
             create: {
               id: credentialId,
               userId: user.id,
               moduleId: moduleData.id,
               onChainId: `cred_${user.id.slice(-5)}_${moduleData.id.slice(-5)}`,
-              issuedAt: new Date(completedAt.getTime() + Math.floor(rand() * 12) * 60 * 60 * 1000),
+              issuedAt: new Date(
+                completedAt.getTime() +
+                  Math.floor(rand() * 12) * 60 * 60 * 1000,
+              ),
             },
           }),
         )
       }
 
       const rewardTxnId = `seed-transaction-reward-${user.id}-${moduleData.id}`
-      const amount = xlmAmount(moduleData, rand)
+      const amount = xlmAmountStroops(moduleData, rand)
       const rewardCreatedAt = new Date(completedAt.getTime() + 60 * 60 * 1000)
       transactions.push(
-        prisma.transaction.upsert({
+        (prisma.transaction.upsert as any)({
           where: { id: rewardTxnId },
           update: {
             userId: user.id,
             amount,
+            assetCode: 'XLM',
+            assetDecimals: 7,
+            network: 'testnet',
             type: 'module_reward',
             status: 'completed',
             createdAt: rewardCreatedAt,
@@ -292,6 +323,9 @@ async function seedLearningData() {
             id: rewardTxnId,
             userId: user.id,
             amount,
+            assetCode: 'XLM',
+            assetDecimals: 7,
+            network: 'testnet',
             type: 'module_reward',
             status: 'completed',
             createdAt: rewardCreatedAt,
@@ -301,37 +335,55 @@ async function seedLearningData() {
     }
 
     const payoutTxnId = `seed-transaction-withdrawal-${user.id}`
+    const withdrawalStroops = BigInt(
+      Math.round((15 + rand() * 30) * 10_000_000),
+    )
     transactions.push(
-      prisma.transaction.upsert({
+      (prisma.transaction.upsert as any)({
         where: { id: payoutTxnId },
         update: {
           userId: user.id,
-          amount: Number((15 + rand() * 30).toFixed(2)),
+          amount: withdrawalStroops,
+          assetCode: 'XLM',
+          assetDecimals: 7,
+          network: 'testnet',
           type: 'withdrawal',
           status: rand() < 0.85 ? 'completed' : 'pending',
-          createdAt: new Date(Date.now() - Math.floor(rand() * 30) * MS_PER_DAY),
+          createdAt: new Date(
+            Date.now() - Math.floor(rand() * 30) * MS_PER_DAY,
+          ),
         },
         create: {
           id: payoutTxnId,
           userId: user.id,
-          amount: Number((15 + rand() * 30).toFixed(2)),
+          amount: withdrawalStroops,
+          assetCode: 'XLM',
+          assetDecimals: 7,
+          network: 'testnet',
           type: 'withdrawal',
           status: rand() < 0.85 ? 'completed' : 'pending',
-          createdAt: new Date(Date.now() - Math.floor(rand() * 30) * MS_PER_DAY),
+          createdAt: new Date(
+            Date.now() - Math.floor(rand() * 30) * MS_PER_DAY,
+          ),
         },
       }),
     )
   }
 
-  const employers = seedUserFixtures.filter((u) => u.email.includes('.employer+'))
+  const employers = seedUserFixtures.filter((u) =>
+    u.email.includes('.employer+'),
+  )
   for (const employer of employers) {
     const txId = `seed-transaction-employer-credit-${employer.id}`
     transactions.push(
-      prisma.transaction.upsert({
+      (prisma.transaction.upsert as any)({
         where: { id: txId },
         update: {
           userId: employer.id,
-          amount: 1000,
+          amount: 10_000_000n, // 1 XLM in stroops
+          assetCode: 'XLM',
+          assetDecimals: 7,
+          network: 'testnet',
           type: 'admin_adjustment',
           status: 'completed',
           createdAt: new Date(Date.now() - 7 * MS_PER_DAY),
@@ -339,7 +391,10 @@ async function seedLearningData() {
         create: {
           id: txId,
           userId: employer.id,
-          amount: 1000,
+          amount: 10_000_000n, // 1 XLM in stroops
+          assetCode: 'XLM',
+          assetDecimals: 7,
+          network: 'testnet',
           type: 'admin_adjustment',
           status: 'completed',
           createdAt: new Date(Date.now() - 7 * MS_PER_DAY),
@@ -393,7 +448,13 @@ async function main() {
   await seedLearningData()
   await seedWebhookData()
 
-  const [userCount, moduleCount, completionCount, credentialCount, transactionCount] = await Promise.all([
+  const [
+    userCount,
+    moduleCount,
+    completionCount,
+    credentialCount,
+    transactionCount,
+  ] = await Promise.all([
     prisma.user.count(),
     prisma.module.count(),
     prisma.completion.count(),

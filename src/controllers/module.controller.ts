@@ -5,24 +5,32 @@ const COMPLETION_IN_PROGRESS_SCORE = -1
 import { z } from 'zod'
 import { prisma } from '../config/database'
 import { NotificationService } from '../services/notification.service'
+import { stroopsToDecimalString } from '../utils/money'
 
 const notificationService = new NotificationService()
 
 // Query parameter schemas for validation
 const listModulesSchema = z.object({
-  page: z.string().optional().transform(val => val ? parseInt(val) : 1),
-  limit: z.string().optional().transform(val => val ? parseInt(val) : 10),
+  page: z
+    .string()
+    .optional()
+    .transform((val) => (val ? parseInt(val) : 1)),
+  limit: z
+    .string()
+    .optional()
+    .transform((val) => (val ? parseInt(val) : 10)),
   category: z.string().optional(),
   difficulty: z.string().optional(),
   search: z.string().optional(),
 })
 
-
 const completeModuleSchema = z.object({
-  quizAnswers: z.array(z.object({
-    questionId: z.string(),
-    answer: z.string(),
-  })),
+  quizAnswers: z.array(
+    z.object({
+      questionId: z.string(),
+      answer: z.string(),
+    }),
+  ),
 })
 
 /**
@@ -70,7 +78,7 @@ export const listModules = async (req: Request, res: Response) => {
     if (!queryValidation.success) {
       return res.status(400).json({
         message: 'Invalid query parameters',
-        errors: queryValidation.error.errors
+        errors: queryValidation.error.errors,
       })
     }
 
@@ -91,7 +99,7 @@ export const listModules = async (req: Request, res: Response) => {
     if (search) {
       where.OR = [
         { title: { contains: search, mode: 'insensitive' } },
-        { description: { contains: search, mode: 'insensitive' } }
+        { description: { contains: search, mode: 'insensitive' } },
       ]
     }
 
@@ -107,10 +115,10 @@ export const listModules = async (req: Request, res: Response) => {
       include: {
         _count: {
           select: {
-            completions: true
-          }
-        }
-      }
+            completions: true,
+          },
+        },
+      },
     })
 
     // If user is authenticated, include their progress
@@ -118,31 +126,47 @@ export const listModules = async (req: Request, res: Response) => {
     if (req.user) {
       const userCompletions = await prisma.completion.findMany({
         where: { userId: req.user.id },
-        select: { moduleId: true, score: true, completedAt: true }
+        select: { moduleId: true, score: true, completedAt: true },
       })
-      
+
       userCompletions.forEach((completion: any) => {
         userProgress[completion.moduleId] = {
           completed: true,
           score: completion.score,
-          completedAt: completion.completedAt
+          completedAt: completion.completedAt,
         }
       })
     }
 
     // Transform response
-    const transformedModules = modules.map((module: any) => ({
-      id: module.id,
-      title: module.title,
-      description: module.description,
-      category: module.category,
-      difficulty: module.difficulty,
-      reward: module.reward,
-      createdAt: module.createdAt,
-      updatedAt: module.updatedAt,
-      completionCount: module._count.completions,
-      userProgress: userProgress[module.id] || null
-    }))
+    const transformedModules = modules.map((module: any) => {
+      const rewardStroops = module.rewardAmount ?? 0n
+      const assetDecimals = module.assetDecimals ?? 7
+      const decimalStr = stroopsToDecimalString(
+        BigInt(rewardStroops),
+        assetDecimals,
+      )
+      return {
+        id: module.id,
+        title: module.title,
+        description: module.description,
+        category: module.category,
+        difficulty: module.difficulty,
+        reward: Number(decimalStr),
+        rewardAmountStroops: rewardStroops.toString(),
+        rewardFormatted: decimalStr,
+        asset: {
+          code: module.assetCode ?? 'XLM',
+          issuer: module.assetIssuer ?? null,
+          decimals: assetDecimals,
+          network: module.network ?? 'testnet',
+        },
+        createdAt: module.createdAt,
+        updatedAt: module.updatedAt,
+        completionCount: module._count.completions,
+        userProgress: userProgress[module.id] || null,
+      }
+    })
 
     res.json({
       modules: transformedModules,
@@ -152,10 +176,9 @@ export const listModules = async (req: Request, res: Response) => {
         total,
         totalPages: Math.ceil(total / limit),
         hasNext: page * limit < total,
-        hasPrev: page > 1
-      }
+        hasPrev: page > 1,
+      },
     })
-
   } catch (error) {
     console.error('Error listing modules:', error)
     res.status(500).json({ message: 'Internal server error' })
@@ -193,10 +216,10 @@ export const getModuleById = async (req: Request, res: Response) => {
       include: {
         _count: {
           select: {
-            completions: true
-          }
-        }
-      }
+            completions: true,
+          },
+        },
+      },
     })
 
     if (!module) {
@@ -210,19 +233,26 @@ export const getModuleById = async (req: Request, res: Response) => {
         where: {
           userId_moduleId: {
             userId: req.user.id,
-            moduleId: id
-          }
-        }
+            moduleId: id,
+          },
+        },
       })
-      
+
       if (completion) {
         userProgress = {
           completed: true,
           score: completion.score,
-          completedAt: completion.completedAt
+          completedAt: completion.completedAt,
         }
       }
     }
+
+    const rewardStroops = (module as any).rewardAmount ?? 0n
+    const assetDecimals = (module as any).assetDecimals ?? 7
+    const decimalStr = stroopsToDecimalString(
+      BigInt(rewardStroops),
+      assetDecimals,
+    )
 
     const response = {
       id: module.id,
@@ -230,15 +260,22 @@ export const getModuleById = async (req: Request, res: Response) => {
       description: module.description,
       category: module.category,
       difficulty: module.difficulty,
-      reward: module.reward,
+      reward: Number(decimalStr),
+      rewardAmountStroops: rewardStroops.toString(),
+      rewardFormatted: decimalStr,
+      asset: {
+        code: (module as any).assetCode ?? 'XLM',
+        issuer: (module as any).assetIssuer ?? null,
+        decimals: assetDecimals,
+        network: (module as any).network ?? 'testnet',
+      },
       createdAt: module.createdAt,
       updatedAt: module.updatedAt,
       completionCount: module._count.completions,
-      userProgress
+      userProgress,
     }
 
     res.json(response)
-
   } catch (error) {
     console.error('Error getting module:', error)
     res.status(500).json({ message: 'Internal server error' })
@@ -279,7 +316,7 @@ export const startModule = async (req: Request, res: Response) => {
 
     // Check if module exists
     const module = await prisma.module.findUnique({
-      where: { id }
+      where: { id },
     })
 
     if (!module) {
@@ -291,16 +328,15 @@ export const startModule = async (req: Request, res: Response) => {
       where: {
         userId_moduleId: {
           userId: req.user.id,
-          moduleId: id
-        }
-      }
+          moduleId: id,
+        },
+      },
     })
 
     if (existingCompletion) {
       return res.status(400).json({
         message: 'Module already started or completed',
-        status:
-          existingCompletion.score >= 0 ? 'completed' : 'in_progress',
+        status: existingCompletion.score >= 0 ? 'completed' : 'in_progress',
       })
     }
 
@@ -316,9 +352,8 @@ export const startModule = async (req: Request, res: Response) => {
     res.status(201).json({
       message: 'Module started successfully',
       completionId: completion.id,
-      startedAt: completion.createdAt
+      startedAt: completion.createdAt,
     })
-
   } catch (error) {
     console.error('Error starting module:', error)
     res.status(500).json({ message: 'Internal server error' })
@@ -367,11 +402,11 @@ export const completeModule = async (req: Request, res: Response) => {
 
     const { id } = req.params
     const bodyValidation = completeModuleSchema.safeParse(req.body)
-    
+
     if (!bodyValidation.success) {
       return res.status(400).json({
         message: 'Invalid request body',
-        errors: bodyValidation.error.errors
+        errors: bodyValidation.error.errors,
       })
     }
 
@@ -379,7 +414,7 @@ export const completeModule = async (req: Request, res: Response) => {
 
     // Check if module exists
     const module = await prisma.module.findUnique({
-      where: { id }
+      where: { id },
     })
 
     if (!module) {
@@ -391,13 +426,15 @@ export const completeModule = async (req: Request, res: Response) => {
       where: {
         userId_moduleId: {
           userId: req.user.id,
-          moduleId: id
-        }
-      }
+          moduleId: id,
+        },
+      },
     })
 
     if (!completion) {
-      return res.status(400).json({ message: 'Module must be started before completion' })
+      return res
+        .status(400)
+        .json({ message: 'Module must be started before completion' })
     }
 
     if (completion.score >= 0) {
@@ -415,50 +452,72 @@ export const completeModule = async (req: Request, res: Response) => {
       where: {
         userId_moduleId: {
           userId: req.user.id,
-          moduleId: id
-        }
+          moduleId: id,
+        },
       },
       data: {
         score,
-        completedAt: new Date()
-      }
+        completedAt: new Date(),
+      },
     })
 
     // Check reward eligibility (score >= 70%)
     const isEligibleForReward = score >= 70
     let rewardTransaction = null
 
+    const moduleStroops = (module as any).rewardAmount ?? 0n
+    const modAssetDecimals = (module as any).assetDecimals ?? 7
+    const moduleDecimalStr = stroopsToDecimalString(
+      BigInt(moduleStroops),
+      modAssetDecimals,
+    )
+
     if (isEligibleForReward) {
       // Create reward transaction
-      rewardTransaction = await prisma.transaction.create({
+      rewardTransaction = await (prisma.transaction.create as any)({
         data: {
           userId: req.user.id,
-          amount: module.reward,
+          amount: BigInt(moduleStroops),
+          assetCode: (module as any).assetCode ?? 'XLM',
+          assetIssuer: (module as any).assetIssuer ?? null,
+          assetDecimals: modAssetDecimals,
+          network: (module as any).network ?? 'testnet',
           type: 'reward',
-          status: 'pending'
-        }
+          status: 'pending',
+        },
       })
     }
 
     // Fire push notification for quiz pass/fail (non-blocking)
-    notificationService.queueNotification(
-      req.user.id,
-      'quizPassFail',
-      isEligibleForReward ? 'Quiz Passed!' : 'Quiz Completed',
-      isEligibleForReward
-        ? `Great job! You scored ${score}% on "${module.title}" and earned ${module.reward} XLM.`
-        : `You scored ${score}% on "${module.title}". Keep practicing to earn rewards!`
-    ).catch(err => console.error('[Notifications] Quiz notification error:', err))
+    notificationService
+      .queueNotification(
+        req.user.id,
+        'quizPassFail',
+        isEligibleForReward ? 'Quiz Passed!' : 'Quiz Completed',
+        isEligibleForReward
+          ? `Great job! You scored ${score}% on "${module.title}" and earned ${moduleDecimalStr} XLM.`
+          : `You scored ${score}% on "${module.title}". Keep practicing to earn rewards!`,
+      )
+      .catch((err) =>
+        console.error('[Notifications] Quiz notification error:', err),
+      )
 
     res.json({
       message: 'Module completed successfully',
       score,
       isEligibleForReward,
-      reward: isEligibleForReward ? module.reward : 0,
+      reward: isEligibleForReward ? Number(moduleDecimalStr) : 0,
+      rewardAmountStroops: isEligibleForReward ? moduleStroops.toString() : '0',
+      rewardFormatted: isEligibleForReward ? moduleDecimalStr : '0.0000000',
+      asset: {
+        code: (module as any).assetCode ?? 'XLM',
+        issuer: (module as any).assetIssuer ?? null,
+        decimals: modAssetDecimals,
+        network: (module as any).network ?? 'testnet',
+      },
       rewardTransaction: rewardTransaction?.id,
-      completedAt: updatedCompletion.completedAt
+      completedAt: updatedCompletion.completedAt,
     })
-
   } catch (error) {
     console.error('Error completing module:', error)
     res.status(500).json({ message: 'Internal server error' })

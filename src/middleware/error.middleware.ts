@@ -67,7 +67,7 @@ export const errorHandler = (
 export const notFoundHandler = (
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ): void => {
   const notFound = new NotFoundError(`Cannot ${req.method} ${req.path}`)
 
@@ -86,7 +86,7 @@ export const notFoundHandler = (
  * Prevents unhandled promise rejections
  */
 export const asyncHandler = (
-  fn: (req: Request, res: Response, next: NextFunction) => Promise<any>
+  fn: (req: Request, res: Response, next: NextFunction) => Promise<any>,
 ) => {
   return (req: Request, res: Response, next: NextFunction) => {
     Promise.resolve(fn(req, res, next)).catch((error) => {

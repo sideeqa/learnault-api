@@ -1,19 +1,31 @@
 import { StellarService } from './stellar.service'
 import { NotificationService } from './notification.service'
+import {
+  AssetIdentity,
+  NATIVE_XLM_ASSET,
+  calculatePercentageStroops,
+  safeAddStroops,
+  safeSubtractStroops,
+  stroopsToDecimalString,
+  toStroops,
+} from '../utils/money'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export type ModuleDifficulty =
-  | 'beginner'
-  | 'intermediate'
-  | 'advanced'
-  | 'expert'
+  'beginner' | 'intermediate' | 'advanced' | 'expert'
 
 export interface Module {
   id: string
   difficulty: ModuleDifficulty
-  baseReward: number
+  baseReward?: number
+  baseRewardStroops?: bigint
+  rewardAmount?: bigint
   title: string
+  assetCode?: string
+  assetIssuer?: string | null
+  assetDecimals?: number
+  network?: string
 }
 
 export interface RewardClaim {
@@ -29,9 +41,14 @@ export interface RewardResult {
   userId: string
   moduleId: string
   baseAmount: number
+  baseAmountStroops: bigint
   streakBonus: number
+  streakBonusStroops: bigint
   referralBonus: number
+  referralBonusStroops: bigint
   totalAmount: number
+  totalAmountStroops: bigint
+  asset: AssetIdentity
   stellarTxHash: string
   claimedAt: Date
 }
@@ -41,6 +58,11 @@ export interface Transaction {
   userId: string
   moduleId?: string
   amount: number
+  amountStroops: bigint
+  assetCode?: string
+  assetIssuer?: string | null
+  assetDecimals?: number
+  network?: string
   type: 'module_reward' | 'streak_bonus' | 'referral_reward' | 'withdrawal'
   status: 'pending' | 'completed' | 'failed'
   stellarTxHash?: string
@@ -58,14 +80,16 @@ export const DIFFICULTY_MULTIPLIERS: Record<ModuleDifficulty, number> = {
 }
 
 export const BASE_REWARD_XLM = 5
+export const BASE_REWARD_STROOPS = 50_000_000n
 export const STREAK_BONUS_RATE = 0.1 // 10% bonus per streak day
 export const MAX_STREAK_BONUS = 1.0 // cap at 100% of base
-export const REFERRAL_BONUS_XLM = 2 // flat XLM bonus per referral
+export const REFERRAL_BONUS_XLM = 2
+export const REFERRAL_BONUS_STROOPS = 20_000_000n
 
 export interface WithdrawalRequest {
   userId: string
   walletAddress: string
-  amount: number
+  amount: number | bigint | string
   memo?: string
 }
 
@@ -73,6 +97,8 @@ export interface WithdrawalResult {
   transactionId: string
   userId: string
   amount: number
+  amountStroops: bigint
+  asset: AssetIdentity
   stellarTxHash: string
   status: 'pending' | 'completed' | 'failed'
   requestedAt: Date
@@ -82,8 +108,12 @@ export interface WithdrawalResult {
 export interface Balance {
   userId: string
   available: number
+  availableStroops: bigint
   pending: number
+  pendingStroops: bigint
   lifetime: number
+  lifetimeStroops: bigint
+  asset: AssetIdentity
   updatedAt: Date
 }
 
@@ -125,16 +155,41 @@ export class RewardService {
     hasReferral = false,
   ): {
     baseAmount: number
+    baseAmountStroops: bigint
     streakBonus: number
+    streakBonusStroops: bigint
     referralBonus: number
+    referralBonusStroops: bigint
     totalAmount: number
+    totalAmountStroops: bigint
   } {
-    const baseAmount = this.calculateBaseReward(module)
-    const streakBonus = this.calculateStreakBonus(baseAmount, streakDays)
-    const referralBonus = hasReferral ? REFERRAL_BONUS_XLM : 0
-    const totalAmount = baseAmount + streakBonus + referralBonus
+    const baseAmountStroops = this.calculateBaseRewardStroops(module)
+    const streakBonusStroops = this.calculateStreakBonusStroops(
+      baseAmountStroops,
+      streakDays,
+    )
+    const referralBonusStroops = hasReferral ? REFERRAL_BONUS_STROOPS : 0n
+    const totalAmountStroops = safeAddStroops(
+      baseAmountStroops,
+      streakBonusStroops,
+      referralBonusStroops,
+    )
 
-    return { baseAmount, streakBonus, referralBonus, totalAmount }
+    const baseAmount = Number(stroopsToDecimalString(baseAmountStroops))
+    const streakBonus = Number(stroopsToDecimalString(streakBonusStroops))
+    const referralBonus = Number(stroopsToDecimalString(referralBonusStroops))
+    const totalAmount = Number(stroopsToDecimalString(totalAmountStroops))
+
+    return {
+      baseAmount,
+      baseAmountStroops,
+      streakBonus,
+      streakBonusStroops,
+      referralBonus,
+      referralBonusStroops,
+      totalAmount,
+      totalAmountStroops,
+    }
   }
 
   /**
@@ -151,14 +206,28 @@ export class RewardService {
       : undefined
 
     // 3. Calculate amounts
-    const { baseAmount, streakBonus, referralBonus, totalAmount } =
-      this.calculateReward(module, claim.streakDays ?? 0, !!referrerId)
+    const rewardBreakdown = this.calculateReward(
+      module,
+      claim.streakDays ?? 0,
+      !!referrerId,
+    )
+
+    const asset: AssetIdentity = {
+      code: module.assetCode || NATIVE_XLM_ASSET.code,
+      issuer: module.assetIssuer || NATIVE_XLM_ASSET.issuer,
+      decimals: module.assetDecimals || NATIVE_XLM_ASSET.decimals,
+      network: module.network || NATIVE_XLM_ASSET.network,
+    }
 
     // 4. Payout via Stellar
+    const decimalStr = stroopsToDecimalString(
+      rewardBreakdown.totalAmountStroops,
+      asset.decimals,
+    )
     const paymentResult = await this.stellarService.sendPayment({
       sourceSecret: process.env.STELLAR_SOURCE_SECRET!,
       destinationPublicKey: claim.walletAddress,
-      amount: totalAmount.toString(),
+      amount: decimalStr,
       memo: `Learnault reward: module ${claim.moduleId}`,
     })
     const stellarTxHash = paymentResult.hash
@@ -170,33 +239,47 @@ export class RewardService {
     const transactionId = this.recordTransaction({
       userId: claim.userId,
       moduleId: claim.moduleId,
-      amount: totalAmount,
+      amount: rewardBreakdown.totalAmount,
+      amountStroops: rewardBreakdown.totalAmountStroops,
+      assetCode: asset.code,
+      assetIssuer: asset.issuer,
+      assetDecimals: asset.decimals,
+      network: asset.network,
       type: 'module_reward',
       status: 'completed',
       stellarTxHash,
     })
 
     // 7. Pay referral bonus if applicable (non-blocking)
-    if (referrerId && referralBonus > 0) {
+    if (referrerId && rewardBreakdown.referralBonusStroops > 0n) {
       await this.payReferralBonus(referrerId, claim.moduleId, stellarTxHash)
     }
 
     // 8. Send push notification for reward receipt (non-blocking)
-    this.notificationService.queueNotification(
-      claim.userId,
-      'rewardReceipt',
-      'Reward Received!',
-      `You earned ${totalAmount.toFixed(2)} XLM for completing module ${module.title}.`
-    ).catch(err => console.error('[Notifications] Reward notification error:', err))
+    this.notificationService
+      .queueNotification(
+        claim.userId,
+        'rewardReceipt',
+        'Reward Received!',
+        `You earned ${decimalStr} XLM for completing module ${module.title}.`,
+      )
+      .catch((err) =>
+        console.error('[Notifications] Reward notification error:', err),
+      )
 
     return {
       transactionId,
       userId: claim.userId,
       moduleId: claim.moduleId,
-      baseAmount,
-      streakBonus,
-      referralBonus,
-      totalAmount,
+      baseAmount: rewardBreakdown.baseAmount,
+      baseAmountStroops: rewardBreakdown.baseAmountStroops,
+      streakBonus: rewardBreakdown.streakBonus,
+      streakBonusStroops: rewardBreakdown.streakBonusStroops,
+      referralBonus: rewardBreakdown.referralBonus,
+      referralBonusStroops: rewardBreakdown.referralBonusStroops,
+      totalAmount: rewardBreakdown.totalAmount,
+      totalAmountStroops: rewardBreakdown.totalAmountStroops,
+      asset,
       stellarTxHash,
       claimedAt: new Date(),
     }
@@ -239,30 +322,37 @@ export class RewardService {
   getBalance(userId: string): Balance {
     const userTransactions = this.getUserTransactions(userId)
 
-    // Calculate totals from completed transactions only
-    const earned = userTransactions
+    const earnedStroops = userTransactions
       .filter(
         (t) =>
           t.status === 'completed' &&
           ['module_reward', 'streak_bonus', 'referral_reward'].includes(t.type),
       )
-      .reduce((sum, t) => sum + t.amount, 0)
+      .reduce((sum, t) => sum + t.amountStroops, 0n)
 
-    const withdrawn = userTransactions
+    const withdrawnStroops = userTransactions
       .filter((t) => t.status === 'completed' && t.type === 'withdrawal')
-      .reduce((sum, t) => sum + t.amount, 0)
+      .reduce((sum, t) => sum + t.amountStroops, 0n)
 
-    const pending = userTransactions
+    const pendingStroops = userTransactions
       .filter((t) => t.status === 'pending' && t.type === 'withdrawal')
-      .reduce((sum, t) => sum + t.amount, 0)
+      .reduce((sum, t) => sum + t.amountStroops, 0n)
 
-    const available = earned - withdrawn - pending
+    const availableStroops = safeSubtractStroops(
+      safeSubtractStroops(earnedStroops, withdrawnStroops),
+      pendingStroops,
+    )
+    const effectiveAvailable = availableStroops < 0n ? 0n : availableStroops
 
     return {
       userId,
-      available: Math.max(0, +available.toFixed(7)),
-      pending: +pending.toFixed(7),
-      lifetime: +earned.toFixed(7),
+      available: Number(stroopsToDecimalString(effectiveAvailable)),
+      availableStroops: effectiveAvailable,
+      pending: Number(stroopsToDecimalString(pendingStroops)),
+      pendingStroops,
+      lifetime: Number(stroopsToDecimalString(earnedStroops)),
+      lifetimeStroops: earnedStroops,
+      asset: NATIVE_XLM_ASSET,
       updatedAt: new Date(),
     }
   }
@@ -327,23 +417,29 @@ export class RewardService {
   async processWithdrawal(
     request: WithdrawalRequest,
   ): Promise<WithdrawalResult> {
-    // Validate sufficient balance
-    const balance = this.getBalance(request.userId)
-
-    if (request.amount > balance.available) {
-      throw new Error(
-        `Insufficient balance. Available: ${balance.available} XLM, Requested: ${request.amount} XLM`,
-      )
+    const amountStroops = toStroops(request.amount)
+    if (amountStroops <= 0n) {
+      throw new Error('Withdrawal amount must be greater than 0')
     }
 
-    if (request.amount <= 0) {
-      throw new Error('Withdrawal amount must be greater than 0')
+    const balance = this.getBalance(request.userId)
+
+    if (amountStroops > balance.availableStroops) {
+      const requestedDecimal = stroopsToDecimalString(amountStroops)
+      throw new Error(
+        `Insufficient balance. Available: ${balance.available} XLM, Requested: ${requestedDecimal} XLM`,
+      )
     }
 
     // Create pending withdrawal transaction
     const transactionId = this.recordTransaction({
       userId: request.userId,
-      amount: request.amount,
+      amount: Number(stroopsToDecimalString(amountStroops)),
+      amountStroops,
+      assetCode: NATIVE_XLM_ASSET.code,
+      assetIssuer: NATIVE_XLM_ASSET.issuer,
+      assetDecimals: NATIVE_XLM_ASSET.decimals,
+      network: NATIVE_XLM_ASSET.network,
       type: 'withdrawal',
       status: 'pending',
       stellarTxHash: undefined,
@@ -357,7 +453,7 @@ export class RewardService {
       const paymentResult = await this.stellarService.sendPayment({
         sourceSecret: process.env.STELLAR_SOURCE_SECRET!,
         destinationPublicKey: request.walletAddress,
-        amount: request.amount.toString(),
+        amount: stroopsToDecimalString(amountStroops),
         memo: request.memo ?? `Learnault withdrawal: ${transactionId}`,
       })
       const stellarTxHash = paymentResult.hash
@@ -368,7 +464,9 @@ export class RewardService {
       return {
         transactionId,
         userId: request.userId,
-        amount: request.amount,
+        amount: Number(stroopsToDecimalString(amountStroops)),
+        amountStroops,
+        asset: NATIVE_XLM_ASSET,
         stellarTxHash,
         status: 'completed',
         requestedAt: new Date(),
@@ -385,25 +483,45 @@ export class RewardService {
   /**
    * Check if user has sufficient balance for withdrawal.
    */
-  hasSufficientBalance(userId: string, amount: number): boolean {
+  hasSufficientBalance(
+    userId: string,
+    amount: number | bigint | string,
+  ): boolean {
+    const amountStroops = toStroops(amount)
     const balance = this.getBalance(userId)
 
-    return amount <= balance.available
+    return amountStroops <= balance.availableStroops
   }
 
   // ── Private helpers ─────────────────────────────────────────────────────────
 
-  private calculateBaseReward(module: Module): number {
-    const multiplier = DIFFICULTY_MULTIPLIERS[module.difficulty] ?? 1.0
+  private calculateBaseRewardStroops(module: Module): bigint {
+    if (module.rewardAmount !== undefined && module.rewardAmount !== null) {
+      return module.rewardAmount
+    }
+    if (
+      module.baseRewardStroops !== undefined &&
+      module.baseRewardStroops !== null
+    ) {
+      return module.baseRewardStroops
+    }
+    if (module.baseReward !== undefined && module.baseReward !== null) {
+      const multiplier = DIFFICULTY_MULTIPLIERS[module.difficulty] ?? 1.0
+      // 5 XLM base * multiplier
+      return toStroops((module.baseReward * multiplier).toFixed(7))
+    }
 
-    return +(BASE_REWARD_XLM * multiplier).toFixed(7)
+    const multiplier = DIFFICULTY_MULTIPLIERS[module.difficulty] ?? 1.0
+    return toStroops((BASE_REWARD_XLM * multiplier).toFixed(7))
   }
 
-  private calculateStreakBonus(baseAmount: number, streakDays: number): number {
-    if (streakDays <= 0) return 0
-    const bonusRate = Math.min(streakDays * STREAK_BONUS_RATE, MAX_STREAK_BONUS)
-
-    return +(baseAmount * bonusRate).toFixed(7)
+  private calculateStreakBonusStroops(
+    baseStroops: bigint,
+    streakDays: number,
+  ): bigint {
+    if (streakDays <= 0) return 0n
+    const streakPercent = BigInt(Math.min(streakDays * 10, 100))
+    return calculatePercentageStroops(baseStroops, streakPercent)
   }
 
   private resolveReferralCode(code: string): string | undefined {
@@ -457,16 +575,11 @@ export class RewardService {
     _originalTxHash: string,
   ): Promise<void> {
     try {
-      // TODO: Implement user wallet storage and retrieval
-      // For now, skip referral bonus if wallet address cannot be retrieved
-      // This requires a user wallet storage mechanism to be implemented
       console.warn(
         `Referral bonus skipped: No wallet address storage implemented for user ${referrerId}`,
       )
-
       return
     } catch (err) {
-      // Referral bonus failure must NOT roll back the learner's main reward
       console.error(`Failed to pay referral bonus to user ${referrerId}:`, err)
     }
   }

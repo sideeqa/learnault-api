@@ -93,6 +93,23 @@
  *         user:
  *           $ref: '#/components/schemas/User'
  *
+ *     AssetIdentity:
+ *       type: object
+ *       properties:
+ *         code:
+ *           type: string
+ *           example: XLM
+ *         issuer:
+ *           type: string
+ *           nullable: true
+ *           example: null
+ *         decimals:
+ *           type: integer
+ *           example: 7
+ *         network:
+ *           type: string
+ *           example: testnet
+ *
  *     Module:
  *       type: object
  *       properties:
@@ -109,6 +126,14 @@
  *           type: string
  *         reward:
  *           type: number
+ *         rewardAmountStroops:
+ *           type: string
+ *           example: "50000000"
+ *         rewardFormatted:
+ *           type: string
+ *           example: "5.0000000"
+ *         asset:
+ *           $ref: '#/components/schemas/AssetIdentity'
  *         createdAt:
  *           type: string
  *           format: date-time
@@ -181,6 +206,12 @@
  *           type: boolean
  *         reward:
  *           type: number
+ *         rewardAmountStroops:
+ *           type: string
+ *         rewardFormatted:
+ *           type: string
+ *         asset:
+ *           $ref: '#/components/schemas/AssetIdentity'
  *         rewardTransaction:
  *           type: string
  *         completedAt:
@@ -200,10 +231,24 @@
  *               properties:
  *                 available:
  *                   type: number
+ *                 availableStroops:
+ *                   type: string
+ *                 availableFormatted:
+ *                   type: string
  *                 pending:
  *                   type: number
+ *                 pendingStroops:
+ *                   type: string
+ *                 pendingFormatted:
+ *                   type: string
  *                 lifetime:
  *                   type: number
+ *                 lifetimeStroops:
+ *                   type: string
+ *                 lifetimeFormatted:
+ *                   type: string
+ *                 asset:
+ *                   $ref: '#/components/schemas/AssetIdentity'
  *             updatedAt:
  *               type: string
  *               format: date-time
@@ -219,6 +264,12 @@
  *           type: string
  *         amount:
  *           type: number
+ *         amountStroops:
+ *           type: string
+ *         amountFormatted:
+ *           type: string
+ *         asset:
+ *           $ref: '#/components/schemas/AssetIdentity'
  *         moduleId:
  *           type: string
  *         stellarTxHash:
@@ -263,7 +314,11 @@
  *         walletAddress:
  *           type: string
  *         amount:
- *           type: number
+ *           oneOf:
+ *             - type: string
+ *               description: Decimal string (e.g. "5.0000000") or integer stroop string (e.g. "50000000")
+ *             - type: integer
+ *               description: Integer stroops (e.g. 50000000)
  *         memo:
  *           type: string
  *
@@ -281,6 +336,12 @@
  *               type: string
  *             amount:
  *               type: number
+ *             amountStroops:
+ *               type: string
+ *             amountFormatted:
+ *               type: string
+ *             asset:
+ *               $ref: '#/components/schemas/AssetIdentity'
  *             stellarTxHash:
  *               type: string
  *             status:
