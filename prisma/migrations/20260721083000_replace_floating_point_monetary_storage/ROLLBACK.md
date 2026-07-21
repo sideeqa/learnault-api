@@ -1,9 +1,11 @@
 # Migration Rollback Notes
 
 ## Migration Name
+
 `20260721083000_replace_floating_point_monetary_storage`
 
 ## Target
+
 Restoring binary floating point columns (`DOUBLE PRECISION`) for `Module.reward`, `Transaction.amount`, and `referrals.bonusAmount`, and removing asset identity metadata columns (`assetCode`, `assetIssuer`, `assetDecimals`, `network`).
 
 ## Manual Rollback Procedure & SQL Script
@@ -43,6 +45,8 @@ ALTER TABLE "referrals" DROP COLUMN "network";
 ```
 
 ## Validation Instructions
+
 After running the rollback SQL script:
+
 1. Re-generate Prisma Client matching the previous `schema.prisma`.
 2. Verify all existing amounts divide cleanly by 10,000,000 without loss of integrity.

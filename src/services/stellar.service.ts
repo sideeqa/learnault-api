@@ -266,7 +266,8 @@ export class StellarService {
 
   async sendPayment(options: PaymentOptions): Promise<PaymentResult> {
     const { sourceSecret, destinationPublicKey, amount, memo } = options
-    const amountStr = typeof amount === 'bigint' ? stroopsToDecimalString(amount) : amount
+    const amountStr =
+      typeof amount === 'bigint' ? stroopsToDecimalString(amount) : amount
     const asset = options.asset ?? Asset.native()
 
     try {

@@ -13,10 +13,7 @@ import {
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export type ModuleDifficulty =
-  | 'beginner'
-  | 'intermediate'
-  | 'advanced'
-  | 'expert'
+  'beginner' | 'intermediate' | 'advanced' | 'expert'
 
 export interface Module {
   id: string
@@ -167,7 +164,10 @@ export class RewardService {
     totalAmountStroops: bigint
   } {
     const baseAmountStroops = this.calculateBaseRewardStroops(module)
-    const streakBonusStroops = this.calculateStreakBonusStroops(baseAmountStroops, streakDays)
+    const streakBonusStroops = this.calculateStreakBonusStroops(
+      baseAmountStroops,
+      streakDays,
+    )
     const referralBonusStroops = hasReferral ? REFERRAL_BONUS_STROOPS : 0n
     const totalAmountStroops = safeAddStroops(
       baseAmountStroops,
@@ -220,7 +220,10 @@ export class RewardService {
     }
 
     // 4. Payout via Stellar
-    const decimalStr = stroopsToDecimalString(rewardBreakdown.totalAmountStroops, asset.decimals)
+    const decimalStr = stroopsToDecimalString(
+      rewardBreakdown.totalAmountStroops,
+      asset.decimals,
+    )
     const paymentResult = await this.stellarService.sendPayment({
       sourceSecret: process.env.STELLAR_SOURCE_SECRET!,
       destinationPublicKey: claim.walletAddress,
@@ -480,7 +483,10 @@ export class RewardService {
   /**
    * Check if user has sufficient balance for withdrawal.
    */
-  hasSufficientBalance(userId: string, amount: number | bigint | string): boolean {
+  hasSufficientBalance(
+    userId: string,
+    amount: number | bigint | string,
+  ): boolean {
     const amountStroops = toStroops(amount)
     const balance = this.getBalance(userId)
 
@@ -493,7 +499,10 @@ export class RewardService {
     if (module.rewardAmount !== undefined && module.rewardAmount !== null) {
       return module.rewardAmount
     }
-    if (module.baseRewardStroops !== undefined && module.baseRewardStroops !== null) {
+    if (
+      module.baseRewardStroops !== undefined &&
+      module.baseRewardStroops !== null
+    ) {
       return module.baseRewardStroops
     }
     if (module.baseReward !== undefined && module.baseReward !== null) {
@@ -506,7 +515,10 @@ export class RewardService {
     return toStroops((BASE_REWARD_XLM * multiplier).toFixed(7))
   }
 
-  private calculateStreakBonusStroops(baseStroops: bigint, streakDays: number): bigint {
+  private calculateStreakBonusStroops(
+    baseStroops: bigint,
+    streakDays: number,
+  ): bigint {
     if (streakDays <= 0) return 0n
     const streakPercent = BigInt(Math.min(streakDays * 10, 100))
     return calculatePercentageStroops(baseStroops, streakPercent)

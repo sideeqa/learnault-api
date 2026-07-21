@@ -142,7 +142,10 @@ export const listModules = async (req: Request, res: Response) => {
     const transformedModules = modules.map((module: any) => {
       const rewardStroops = module.rewardAmount ?? 0n
       const assetDecimals = module.assetDecimals ?? 7
-      const decimalStr = stroopsToDecimalString(BigInt(rewardStroops), assetDecimals)
+      const decimalStr = stroopsToDecimalString(
+        BigInt(rewardStroops),
+        assetDecimals,
+      )
       return {
         id: module.id,
         title: module.title,
@@ -246,7 +249,10 @@ export const getModuleById = async (req: Request, res: Response) => {
 
     const rewardStroops = (module as any).rewardAmount ?? 0n
     const assetDecimals = (module as any).assetDecimals ?? 7
-    const decimalStr = stroopsToDecimalString(BigInt(rewardStroops), assetDecimals)
+    const decimalStr = stroopsToDecimalString(
+      BigInt(rewardStroops),
+      assetDecimals,
+    )
 
     const response = {
       id: module.id,
@@ -461,7 +467,10 @@ export const completeModule = async (req: Request, res: Response) => {
 
     const moduleStroops = (module as any).rewardAmount ?? 0n
     const modAssetDecimals = (module as any).assetDecimals ?? 7
-    const moduleDecimalStr = stroopsToDecimalString(BigInt(moduleStroops), modAssetDecimals)
+    const moduleDecimalStr = stroopsToDecimalString(
+      BigInt(moduleStroops),
+      modAssetDecimals,
+    )
 
     if (isEligibleForReward) {
       // Create reward transaction

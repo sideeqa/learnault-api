@@ -389,7 +389,9 @@ describe('RewardController', () => {
       await controller.withdraw(mockRequest as any, mockResponse as any, nextFn)
 
       expect(nextFn).toHaveBeenCalledWith(
-        expect.objectContaining({ message: expect.stringContaining('Amount must be a valid') }),
+        expect.objectContaining({
+          message: expect.stringContaining('Amount must be a valid'),
+        }),
       )
     })
 

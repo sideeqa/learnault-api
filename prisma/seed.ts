@@ -335,7 +335,9 @@ async function seedLearningData() {
     }
 
     const payoutTxnId = `seed-transaction-withdrawal-${user.id}`
-    const withdrawalStroops = BigInt(Math.round((15 + rand() * 30) * 10_000_000))
+    const withdrawalStroops = BigInt(
+      Math.round((15 + rand() * 30) * 10_000_000),
+    )
     transactions.push(
       (prisma.transaction.upsert as any)({
         where: { id: payoutTxnId },

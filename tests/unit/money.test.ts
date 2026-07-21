@@ -49,9 +49,15 @@ describe('Monetary Utility (money.ts)', () => {
     })
 
     it('throws UnsafeMonetaryCoercionError for malformed strings', () => {
-      expect(() => decimalStringToStroops('abc')).toThrow(UnsafeMonetaryCoercionError)
-      expect(() => decimalStringToStroops('12.34.56')).toThrow(UnsafeMonetaryCoercionError)
-      expect(() => decimalStringToStroops('')).toThrow(UnsafeMonetaryCoercionError)
+      expect(() => decimalStringToStroops('abc')).toThrow(
+        UnsafeMonetaryCoercionError,
+      )
+      expect(() => decimalStringToStroops('12.34.56')).toThrow(
+        UnsafeMonetaryCoercionError,
+      )
+      expect(() => decimalStringToStroops('')).toThrow(
+        UnsafeMonetaryCoercionError,
+      )
     })
   })
 
@@ -141,7 +147,12 @@ describe('Monetary Utility (money.ts)', () => {
 
     it('throws error when adding Money with mismatched assets', () => {
       const m1 = new Money('5.0', NATIVE_XLM_ASSET)
-      const m2 = new Money('5.0', { code: 'USDC', issuer: 'G123', decimals: 7, network: 'testnet' })
+      const m2 = new Money('5.0', {
+        code: 'USDC',
+        issuer: 'G123',
+        decimals: 7,
+        network: 'testnet',
+      })
 
       expect(() => m1.add(m2)).toThrow(/Asset mismatch/)
     })

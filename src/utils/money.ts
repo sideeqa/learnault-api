@@ -36,7 +36,9 @@ export function decimalStringToStroops(
   decimals: number = DEFAULT_STELLAR_DECIMALS,
 ): bigint {
   if (typeof val !== 'string' || !val.trim()) {
-    throw new UnsafeMonetaryCoercionError(`Invalid decimal string input: ${String(val)}`)
+    throw new UnsafeMonetaryCoercionError(
+      `Invalid decimal string input: ${String(val)}`,
+    )
   }
 
   const cleanVal = val.trim()
@@ -97,7 +99,9 @@ export function toStroops(
 
   if (typeof val === 'number') {
     if (isNaN(val) || !isFinite(val)) {
-      throw new UnsafeMonetaryCoercionError(`Cannot convert non-finite number: ${val}`)
+      throw new UnsafeMonetaryCoercionError(
+        `Cannot convert non-finite number: ${val}`,
+      )
     }
 
     // Convert number to decimal string with fixed precision to check for unsafe float loss
@@ -112,7 +116,9 @@ export function toStroops(
     return decimalStringToStroops(str, decimals)
   }
 
-  throw new UnsafeMonetaryCoercionError(`Unsupported type for monetary conversion: ${typeof val}`)
+  throw new UnsafeMonetaryCoercionError(
+    `Unsupported type for monetary conversion: ${typeof val}`,
+  )
 }
 
 /**
@@ -138,7 +144,8 @@ export function safeMultiplyStroops(
   roundingMode: 'floor' | 'ceil' | 'half-up' = 'floor',
   decimals: number = DEFAULT_STELLAR_DECIMALS,
 ): bigint {
-  const multStr = typeof multiplier === 'number' ? multiplier.toString() : multiplier
+  const multStr =
+    typeof multiplier === 'number' ? multiplier.toString() : multiplier
   const multStroops = decimalStringToStroops(multStr, decimals)
   const scale = 10n ** BigInt(decimals)
 
@@ -173,7 +180,8 @@ export function calculatePercentageStroops(
   percent: bigint,
   maxPercent?: bigint,
 ): bigint {
-  const effectivePercent = maxPercent !== undefined && percent > maxPercent ? maxPercent : percent
+  const effectivePercent =
+    maxPercent !== undefined && percent > maxPercent ? maxPercent : percent
   if (effectivePercent <= 0n) return 0n
   return (baseStroops * effectivePercent) / 100n
 }
@@ -207,8 +215,16 @@ export class Money {
     return new Money(this.stroops - other.stroops, this.asset)
   }
 
-  multiply(multiplier: number | string, roundingMode: 'floor' | 'ceil' | 'half-up' = 'floor'): Money {
-    const newStroops = safeMultiplyStroops(this.stroops, multiplier, roundingMode, this.asset.decimals)
+  multiply(
+    multiplier: number | string,
+    roundingMode: 'floor' | 'ceil' | 'half-up' = 'floor',
+  ): Money {
+    const newStroops = safeMultiplyStroops(
+      this.stroops,
+      multiplier,
+      roundingMode,
+      this.asset.decimals,
+    )
     return new Money(newStroops, this.asset)
   }
 

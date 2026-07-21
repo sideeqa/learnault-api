@@ -216,7 +216,10 @@ export class CredentialController {
       const mod = credential.module as any
       const rewardStroops = mod.rewardAmount ?? 0n
       const assetDecimals = mod.assetDecimals ?? 7
-      const rewardDecimalStr = stroopsToDecimalString(BigInt(rewardStroops), assetDecimals)
+      const rewardDecimalStr = stroopsToDecimalString(
+        BigInt(rewardStroops),
+        assetDecimals,
+      )
 
       res.json({
         success: true,

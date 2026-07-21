@@ -50,13 +50,22 @@ export class RewardController {
           balance: {
             available: balance.available,
             availableStroops: balance.availableStroops.toString(),
-            availableFormatted: stroopsToDecimalString(balance.availableStroops, assetDecimals),
+            availableFormatted: stroopsToDecimalString(
+              balance.availableStroops,
+              assetDecimals,
+            ),
             pending: balance.pending,
             pendingStroops: balance.pendingStroops.toString(),
-            pendingFormatted: stroopsToDecimalString(balance.pendingStroops, assetDecimals),
+            pendingFormatted: stroopsToDecimalString(
+              balance.pendingStroops,
+              assetDecimals,
+            ),
             lifetime: balance.lifetime,
             lifetimeStroops: balance.lifetimeStroops.toString(),
-            lifetimeFormatted: stroopsToDecimalString(balance.lifetimeStroops, assetDecimals),
+            lifetimeFormatted: stroopsToDecimalString(
+              balance.lifetimeStroops,
+              assetDecimals,
+            ),
             asset: balance.asset,
           },
           updatedAt: balance.updatedAt.toISOString(),
@@ -275,7 +284,9 @@ export class RewardController {
             `Amount must be a valid numeric amount or decimal string: ${err.message}`,
           )
         }
-        throw new BadRequestError('Amount must be a valid numeric amount or decimal string')
+        throw new BadRequestError(
+          'Amount must be a valid numeric amount or decimal string',
+        )
       }
 
       if (requestedStroops <= 0n) {
@@ -304,7 +315,10 @@ export class RewardController {
         memo,
       })
 
-      const formatted = stroopsToDecimalString(result.amountStroops, result.asset.decimals)
+      const formatted = stroopsToDecimalString(
+        result.amountStroops,
+        result.asset.decimals,
+      )
 
       res.status(201).json({
         success: true,
