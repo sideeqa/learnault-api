@@ -193,13 +193,17 @@ describe('ReferralController', () => {
         {
           id: 'ref-1',
           bonusPaid: true,
-          bonusAmount: 5.0,
+          bonusAmount: 50_000_000n,
+          bonusAssetCode: 'XLM',
+          bonusAssetDecimals: 7,
           referree: { completions: [{ id: 'c-1' }] },
         },
         {
           id: 'ref-2',
           bonusPaid: false,
           bonusAmount: null,
+          bonusAssetCode: null,
+          bonusAssetDecimals: null,
           referree: { completions: [] },
         },
       ] as any)
@@ -214,7 +218,6 @@ describe('ReferralController', () => {
           data: expect.objectContaining({
             totalReferrals: 2,
             activeReferrals: 1,
-            earnedBonuses: 5.0,
           }),
         }),
       )

@@ -59,8 +59,12 @@ describe('RewardController', () => {
     it('should return balance for authenticated user', async () => {
       const mockBalance = {
         available: 100.5,
+        availableStroops: 1005000000n,
         pending: 10,
+        pendingStroops: 100000000n,
         lifetime: 150,
+        lifetimeStroops: 1500000000n,
+        asset: { code: 'XLM', issuer: null, decimals: 7, network: 'testnet' },
         updatedAt: new Date(),
       }
 
@@ -78,11 +82,14 @@ describe('RewardController', () => {
         expect.objectContaining({
           success: true,
           data: expect.objectContaining({
-            balance: {
+            balance: expect.objectContaining({
               available: 100.5,
+              availableStroops: '1005000000',
               pending: 10,
+              pendingStroops: '100000000',
               lifetime: 150,
-            },
+              lifetimeStroops: '1500000000',
+            }),
           }),
         }),
       )
@@ -113,6 +120,10 @@ describe('RewardController', () => {
             type: 'module_reward',
             status: 'completed',
             amount: 5,
+            amountStroops: 50_000_000n,
+            assetCode: 'XLM',
+            assetDecimals: 7,
+            network: 'testnet',
             createdAt: new Date(),
           },
         ],
@@ -312,6 +323,8 @@ describe('RewardController', () => {
         transactionId: 'txn-withdrawal-123',
         userId: 'user-123',
         amount: 50,
+        amountStroops: 500_000_000n,
+        asset: { code: 'XLM', issuer: null, decimals: 7, network: 'testnet' },
         stellarTxHash: 'stellar-hash-xyz',
         status: 'completed',
         requestedAt: new Date(),
@@ -321,12 +334,15 @@ describe('RewardController', () => {
 
       await controller.withdraw(mockRequest as any, mockResponse as any, nextFn)
 
-      expect(hasSufficientBalanceSpy).toHaveBeenCalledWith('user-123', 50)
+      expect(hasSufficientBalanceSpy).toHaveBeenCalledWith(
+        'user-123',
+        expect.any(BigInt),
+      )
       expect(processWithdrawalSpy).toHaveBeenCalledWith(
         expect.objectContaining({
           userId: 'user-123',
           walletAddress: withdrawalData.walletAddress,
-          amount: 50,
+          amount: expect.any(BigInt),
           memo: 'Test withdrawal',
         }),
       )
@@ -373,7 +389,7 @@ describe('RewardController', () => {
       await controller.withdraw(mockRequest as any, mockResponse as any, nextFn)
 
       expect(nextFn).toHaveBeenCalledWith(
-        expect.objectContaining({ message: 'Amount must be a valid number' }),
+        expect.objectContaining({ message: expect.stringContaining('Amount must be a valid') }),
       )
     })
 

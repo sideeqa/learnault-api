@@ -27,6 +27,8 @@ export enum EnrollmentStatus {
   FAILED = 'failed',
 }
 
+import { AssetIdentity } from '../utils/money'
+
 export interface Module {
   id: string
   title: string
@@ -37,6 +39,9 @@ export interface Module {
   authorId: string
   estimatedMinutes: number
   pointsReward: number
+  rewardAmountStroops?: string | bigint
+  rewardFormatted?: string
+  asset?: AssetIdentity
   prerequisiteIds: string[]
   tags: string[]
   createdAt: string
