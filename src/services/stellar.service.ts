@@ -25,6 +25,7 @@ import {
   rpc,
   scValToNative,
 } from '@stellar/stellar-sdk'
+import { stroopsToDecimalString } from '../utils/money'
 
 // ---------------------------------------------------------------------------
 // Local type aliases — keeps the rest of the file readable
@@ -265,6 +266,7 @@ export class StellarService {
 
   async sendPayment(options: PaymentOptions): Promise<PaymentResult> {
     const { sourceSecret, destinationPublicKey, amount, memo } = options
+    const amountStr = typeof amount === 'bigint' ? stroopsToDecimalString(amount) : amount
     const asset = options.asset ?? Asset.native()
 
     try {
@@ -292,7 +294,7 @@ export class StellarService {
         builder.addOperation(
           Operation.createAccount({
             destination: destinationPublicKey,
-            startingBalance: amount,
+            startingBalance: amountStr as string,
           }),
         )
       } else {
@@ -300,7 +302,7 @@ export class StellarService {
           Operation.payment({
             destination: destinationPublicKey,
             asset,
-            amount,
+            amount: amountStr as string,
           }),
         )
       }

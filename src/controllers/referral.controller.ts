@@ -9,7 +9,7 @@ import {
   UnauthorizedError,
 } from '../utils/errors'
 
-const REFERRAL_BONUS_AMOUNT = 5.0
+const REFERRAL_BONUS_STROOPS = 50_000_000n // 5 XLM in stroops
 const CODE_BYTES = 4
 
 export class ReferralController {
@@ -168,19 +168,23 @@ export class ReferralController {
         (r: ReferralRow) => r.referree.completions.length > 0,
       ).length
       const paidBonuses = referrals.filter((r: ReferralRow) => r.bonusPaid)
-      const earnedBonuses = paidBonuses.reduce(
-        (sum: number, r: ReferralRow) => sum + (r.bonusAmount ?? 0),
-        0,
+      const earnedBonusesStroops = paidBonuses.reduce(
+        (sum: bigint, r: ReferralRow) => sum + BigInt(r.bonusAmount ?? 0),
+        0n,
       )
+      const pendingCount = BigInt(totalReferrals - paidBonuses.length)
+      const pendingBonusesStroops = pendingCount * REFERRAL_BONUS_STROOPS
 
       res.status(200).json({
         success: true,
         data: {
           totalReferrals,
           activeReferrals,
-          earnedBonuses,
-          pendingBonuses:
-            (totalReferrals - paidBonuses.length) * REFERRAL_BONUS_AMOUNT,
+          earnedBonusesStroops: earnedBonusesStroops.toString(),
+          pendingBonusesStroops: pendingBonusesStroops.toString(),
+          assetCode: 'XLM',
+          assetDecimals: 7,
+          network: 'testnet',
         },
       })
     },
@@ -201,19 +205,25 @@ export class ReferralController {
     })
     if (completionCount < 1) return
 
-    await prisma.referral.update({
+    await (prisma.referral.update as any)({
       where: { id: referral.id },
       data: {
         bonusPaid: true,
-        bonusAmount: REFERRAL_BONUS_AMOUNT,
+        bonusAmount: REFERRAL_BONUS_STROOPS,
+        assetCode: 'XLM',
+        assetDecimals: 7,
+        network: 'testnet',
         bonusPaidAt: new Date(),
       },
     })
 
-    await prisma.transaction.create({
+    await (prisma.transaction.create as any)({
       data: {
         userId: referral.referrerId,
-        amount: REFERRAL_BONUS_AMOUNT,
+        amount: REFERRAL_BONUS_STROOPS,
+        assetCode: 'XLM',
+        assetDecimals: 7,
+        network: 'testnet',
         type: 'referral_reward',
         status: 'completed',
       },

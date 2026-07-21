@@ -10,6 +10,7 @@ import {
   RewardClaim,
 } from '../../src/services/reward.service'
 import { StellarService } from '../../src/services/stellar.service'
+import { stroopsToDecimalString } from '../../src/utils/money'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -142,11 +143,11 @@ describe('RewardService', () => {
       const claim = makeClaim({ streakDays: 2 })
       await service.claimReward(claim, module)
 
-      const { totalAmount } = service.calculateReward(module, 2, false)
+      const { totalAmountStroops } = service.calculateReward(module, 2, false)
       expect(stellarMock.sendPayment).toHaveBeenCalledWith(
         expect.objectContaining({
           destinationPublicKey: claim.walletAddress,
-          amount: totalAmount.toString(),
+          amount: stroopsToDecimalString(totalAmountStroops),
           memo: expect.stringContaining(claim.moduleId),
         }),
       )
@@ -209,11 +210,11 @@ describe('RewardService', () => {
       const claim = makeClaim({ streakDays: 5 })
       await service.claimReward(claim, module)
 
-      const { totalAmount } = service.calculateReward(module, 5, false)
+      const { totalAmountStroops } = service.calculateReward(module, 5, false)
       expect(stellarMock.sendPayment).toHaveBeenCalledWith(
         expect.objectContaining({
           destinationPublicKey: claim.walletAddress,
-          amount: totalAmount.toString(),
+          amount: stroopsToDecimalString(totalAmountStroops),
           memo: expect.any(String),
         }),
       )

@@ -31,16 +31,20 @@ model User {
 }
 
 model Module {
-  id          String       @id @default(uuid())
-  title       String
-  description String
-  category    String
-  difficulty  String // easy, medium, hard
-  reward      Float
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-  completions Completion[]
-  credentials Credential[]
+  id            String       @id @default(uuid())
+  title         String
+  description   String
+  category      String
+  difficulty    String // easy, medium, hard
+  rewardAmount  BigInt       @default(0)
+  assetCode     String       @default("XLM")
+  assetIssuer   String?
+  assetDecimals Int          @default(7)
+  network       String       @default("testnet")
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  completions   Completion[]
+  credentials   Credential[]
 }
 
 model Completion {
@@ -72,14 +76,18 @@ model Credential {
 }
 
 model Transaction {
-  id        String   @id @default(uuid())
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  amount    Float
-  type      String // reward, refund, transfer
-  status    String   @default("pending") // pending, completed, failed
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id            String   @id @default(uuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  amount        BigInt
+  assetCode     String   @default("XLM")
+  assetIssuer   String?
+  assetDecimals Int      @default(7)
+  network       String   @default("testnet")
+  type          String // reward, refund, transfer
+  status        String   @default("pending") // pending, completed, failed
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 }
 
 enum Role {
@@ -100,18 +108,22 @@ model ReferralCode {
 }
 
 model Referral {
-  id          String       @id @default(uuid())
-  referrerId  String
-  referrer    User         @relation("Referrer", fields: [referrerId], references: [id], onDelete: Cascade)
-  referreeId  String       @unique
-  referree    User         @relation("Referree", fields: [referreeId], references: [id], onDelete: Cascade)
-  codeId      String
-  code        ReferralCode @relation(fields: [codeId], references: [id])
-  bonusPaid   Boolean      @default(false)
-  bonusAmount Float?
-  bonusPaidAt DateTime?
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  id            String       @id @default(uuid())
+  referrerId    String
+  referrer      User         @relation("Referrer", fields: [referrerId], references: [id], onDelete: Cascade)
+  referreeId    String       @unique
+  referree      User         @relation("Referree", fields: [referreeId], references: [id], onDelete: Cascade)
+  codeId        String
+  code          ReferralCode @relation(fields: [codeId], references: [id])
+  bonusPaid     Boolean      @default(false)
+  bonusAmount   BigInt?
+  assetCode     String?      @default("XLM")
+  assetIssuer   String?
+  assetDecimals Int?         @default(7)
+  network       String?      @default("testnet")
+  bonusPaidAt   DateTime?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
 
   @@map("referrals")
 }

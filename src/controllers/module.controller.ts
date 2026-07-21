@@ -5,6 +5,7 @@ const COMPLETION_IN_PROGRESS_SCORE = -1
 import { z } from 'zod'
 import { prisma } from '../config/database'
 import { NotificationService } from '../services/notification.service'
+import { stroopsToDecimalString } from '../utils/money'
 
 const notificationService = new NotificationService()
 
@@ -138,18 +139,31 @@ export const listModules = async (req: Request, res: Response) => {
     }
 
     // Transform response
-    const transformedModules = modules.map((module: any) => ({
-      id: module.id,
-      title: module.title,
-      description: module.description,
-      category: module.category,
-      difficulty: module.difficulty,
-      reward: module.reward,
-      createdAt: module.createdAt,
-      updatedAt: module.updatedAt,
-      completionCount: module._count.completions,
-      userProgress: userProgress[module.id] || null,
-    }))
+    const transformedModules = modules.map((module: any) => {
+      const rewardStroops = module.rewardAmount ?? 0n
+      const assetDecimals = module.assetDecimals ?? 7
+      const decimalStr = stroopsToDecimalString(BigInt(rewardStroops), assetDecimals)
+      return {
+        id: module.id,
+        title: module.title,
+        description: module.description,
+        category: module.category,
+        difficulty: module.difficulty,
+        reward: Number(decimalStr),
+        rewardAmountStroops: rewardStroops.toString(),
+        rewardFormatted: decimalStr,
+        asset: {
+          code: module.assetCode ?? 'XLM',
+          issuer: module.assetIssuer ?? null,
+          decimals: assetDecimals,
+          network: module.network ?? 'testnet',
+        },
+        createdAt: module.createdAt,
+        updatedAt: module.updatedAt,
+        completionCount: module._count.completions,
+        userProgress: userProgress[module.id] || null,
+      }
+    })
 
     res.json({
       modules: transformedModules,
@@ -230,13 +244,25 @@ export const getModuleById = async (req: Request, res: Response) => {
       }
     }
 
+    const rewardStroops = (module as any).rewardAmount ?? 0n
+    const assetDecimals = (module as any).assetDecimals ?? 7
+    const decimalStr = stroopsToDecimalString(BigInt(rewardStroops), assetDecimals)
+
     const response = {
       id: module.id,
       title: module.title,
       description: module.description,
       category: module.category,
       difficulty: module.difficulty,
-      reward: module.reward,
+      reward: Number(decimalStr),
+      rewardAmountStroops: rewardStroops.toString(),
+      rewardFormatted: decimalStr,
+      asset: {
+        code: (module as any).assetCode ?? 'XLM',
+        issuer: (module as any).assetIssuer ?? null,
+        decimals: assetDecimals,
+        network: (module as any).network ?? 'testnet',
+      },
       createdAt: module.createdAt,
       updatedAt: module.updatedAt,
       completionCount: module._count.completions,
@@ -433,12 +459,20 @@ export const completeModule = async (req: Request, res: Response) => {
     const isEligibleForReward = score >= 70
     let rewardTransaction = null
 
+    const moduleStroops = (module as any).rewardAmount ?? 0n
+    const modAssetDecimals = (module as any).assetDecimals ?? 7
+    const moduleDecimalStr = stroopsToDecimalString(BigInt(moduleStroops), modAssetDecimals)
+
     if (isEligibleForReward) {
       // Create reward transaction
-      rewardTransaction = await prisma.transaction.create({
+      rewardTransaction = await (prisma.transaction.create as any)({
         data: {
           userId: req.user.id,
-          amount: module.reward,
+          amount: BigInt(moduleStroops),
+          assetCode: (module as any).assetCode ?? 'XLM',
+          assetIssuer: (module as any).assetIssuer ?? null,
+          assetDecimals: modAssetDecimals,
+          network: (module as any).network ?? 'testnet',
           type: 'reward',
           status: 'pending',
         },
@@ -452,7 +486,7 @@ export const completeModule = async (req: Request, res: Response) => {
         'quizPassFail',
         isEligibleForReward ? 'Quiz Passed!' : 'Quiz Completed',
         isEligibleForReward
-          ? `Great job! You scored ${score}% on "${module.title}" and earned ${module.reward} XLM.`
+          ? `Great job! You scored ${score}% on "${module.title}" and earned ${moduleDecimalStr} XLM.`
           : `You scored ${score}% on "${module.title}". Keep practicing to earn rewards!`,
       )
       .catch((err) =>
@@ -463,7 +497,15 @@ export const completeModule = async (req: Request, res: Response) => {
       message: 'Module completed successfully',
       score,
       isEligibleForReward,
-      reward: isEligibleForReward ? module.reward : 0,
+      reward: isEligibleForReward ? Number(moduleDecimalStr) : 0,
+      rewardAmountStroops: isEligibleForReward ? moduleStroops.toString() : '0',
+      rewardFormatted: isEligibleForReward ? moduleDecimalStr : '0.0000000',
+      asset: {
+        code: (module as any).assetCode ?? 'XLM',
+        issuer: (module as any).assetIssuer ?? null,
+        decimals: modAssetDecimals,
+        network: (module as any).network ?? 'testnet',
+      },
       rewardTransaction: rewardTransaction?.id,
       completedAt: updatedCompletion.completedAt,
     })
