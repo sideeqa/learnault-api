@@ -6,9 +6,13 @@ on:
   push:
     branches: [main]
 
+# Least-privilege: only read repository content.
+# Individual steps that need extra access (e.g. upload-artifact) use their own
+# scoped GITHUB_TOKEN implicitly; no write permissions are granted globally.
 permissions:
   contents: read
 
+# Cancel any in-flight run for the same workflow + ref so PRs don't queue.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -33,6 +37,7 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 10
+
       redis:
         image: redis:7-alpine
         ports:
@@ -51,9 +56,11 @@ jobs:
       STELLAR_NETWORK: testnet
 
     steps:
+      # ── Checkout ────────────────────────────────────────────────────────────
       - name: Checkout
         uses: actions/checkout@v4
 
+      # ── Node + pnpm (pinned to committed packageManager version) ────────────
       - name: Install pnpm
         uses: pnpm/action-setup@v4
         with:
@@ -67,45 +74,65 @@ jobs:
           cache: 'pnpm'
           cache-dependency-path: pnpm-lock.yaml
 
-      - name: Install dependencies
+      # --frozen-lockfile ensures the committed lockfile is the source of truth
+      # and that no implicit lockfile mutations happen in CI.
+      - name: Install dependencies (frozen lockfile)
         run: pnpm install --frozen-lockfile
 
+      # ── Prisma gates ────────────────────────────────────────────────────────
       - name: Validate Prisma schema
         run: pnpm run db:validate
 
-      - name: Check Prisma formatting
+      - name: Check Prisma schema formatting
         run: pnpm run db:format:check
 
       - name: Generate Prisma client
         run: pnpm run db:generate
 
-      - name: Apply Prisma migrations
+      # Deploy all committed migrations against the fresh empty test database.
+      # This validates that the full migration history applies cleanly from scratch.
+      - name: Apply migrations (empty-database validation)
         run: pnpm run db:migrate:deploy
 
-      - name: Check formatting
+      # ── Code-quality gates ──────────────────────────────────────────────────
+      - name: Check formatting (Prettier)
         run: pnpm run format:check
 
-      - name: Lint
-        run: pnpm run lint
+      # --max-warnings 0 turns lint warnings into failures so style regressions
+      # are caught early without silently accumulating.
+      - name: Lint (ESLint)
+        run: pnpm exec eslint . --max-warnings 0
 
       - name: Type-check
         run: pnpm run typecheck
 
-      - name: Run unit and integration tests
-        run: pnpm run test:ci
-
-      - name: Run coverage gate
+      # ── Tests + coverage (single run) ───────────────────────────────────────
+      # Run once with coverage so the suite isn't executed twice.
+      # Coverage thresholds are enforced by vitest.config.js (lines/statements/
+      # functions/branches ≥ 60 %).  A threshold breach exits non-zero.
+      - name: Run tests with coverage
         run: pnpm run test:coverage
 
+      # ── Build ────────────────────────────────────────────────────────────────
       - name: Build
         run: pnpm run build
 
-      - name: Upload CI artifacts
+      # ── Artifact upload ──────────────────────────────────────────────────────
+      # Always upload so failures have downloadable evidence.
+      # Coverage HTML report lets reviewers inspect uncovered paths without
+      # re-running locally.
+      - name: Upload coverage report
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: ci-artifacts
-          path: |
-            coverage/
-            .eslintcache/
+          name: coverage-report
+          path: coverage/
+          if-no-files-found: ignore
+
+      - name: Upload build output
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-output
+          path: dist/
           if-no-files-found: ignore

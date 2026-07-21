@@ -34,13 +34,12 @@ function createRateLimiter(
   store: Map<string, RateLimitData>,
   weakStore?: WeakMap<Request, RateLimitData>,
 ) {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const {
     windowMs,
     max,
     message = 'Too many requests, please try again later.',
-    skipSuccessfulRequests = false,
-    skipFailedRequests = false,
+    skipSuccessfulRequests: _skipSuccessfulRequests = false,
+    skipFailedRequests: _skipFailedRequests = false,
   } = options
   const isTest = process.env.NODE_ENV === 'test'
 
